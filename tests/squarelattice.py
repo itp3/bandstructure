@@ -1,10 +1,7 @@
-#!/usr/bin/python3
-# -*- coding:utf-8 -*-
-
 import sys
 sys.path.append("../")
 
-from bandstructure.lattice import Lattice, Square
+from bandstructure.lattice import Square
 from bandstructure.system import System
 from bandstructure.plot import Plot
 
