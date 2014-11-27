@@ -1,52 +1,67 @@
-"""Represents a specific model system on a given lattice."""
-
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 
-class System:
+class System(metaclass=ABCMeta):
+    """Abstract class for the implementation of a specific model system. Child classes need to
+    implement tunnelingRate (and onSite)."""
+
     def __init__(self, lattice, params={}):
         self.lattice = lattice
-        self.params = params
+        self.params = {}
+        self.setSystemParams()
+        self.setParams(params)
+
+    def setSystemParams(self):
+        """This method can be implemented by child classes to set system default parameters."""
+
+        pass
 
     def setParams(self, newParams):
-        """Sets multiple parameters at once. Parameters which are already
-        set are overwritten."""
+        """Sets multiple parameters at once. Parameters which are already set are overwritten."""
 
         # Standard parameters can be overwriten by new params
-        self.params = dict(self.params.items() + newParams.items())
+        self.params.update(newParams)
 
     def get(self, paramName, default=None):
-        """Returns a parameter specified by its name. If the parameter
-        does not exist and 'default' is given, the default value is
-        returned."""
+        """Returns a parameter specified by its name. If the parameter does not exist and 'default'
+        is given, the default value is returned."""
 
-        if paramName not in self.params:
-            if default is None:
-                raise Exception("Unknown parameter name '" + paramName + "'")
-            else:
+        try:
+            return self.params[paramName]
+        except KeyError:
+            if default is not None:
                 return default
-        return self.params[paramName]
 
-    def tunnelingRate(self, orbFrom, orbTo):
-        """Returns the tunneling rate for the given process."""
+            raise Exception("Wrong parameter name '{}'".format(paramName))
 
-        raise NotImplementedError("This method has to be implemented" +
-                                  "by a child class")
+    def showParams(self):
+        """Print a list of all parameters in this system"""
+
+        for name, value in self.params.items():
+            print("{name} = {value}".format(name=name, value=value))
+
+    @abstractmethod
+    def tunnelingRate(self, orbFrom, orbTo, dr):
+        """Returns the tunneling rate for the given tunneling process. orbFrom is the orbital on
+        the initial site, orbTo is the orbital on the final site and dr is the vector connecting
+        the two sites (points from initial to final site)."""
+
+        raise NotImplementedError("This method has to be implemented by a child class")
 
     def onSite(self, orb):
-        """Returns the energy offset of the given site."""
+        """Returns the energy offset of the given site. If no onsite energy is specified,
+        it is assumed to be zero."""
 
-        raise NotImplementedError("This method has to be implemented" +
-                                  "by a child class")
+        return 0
 
     def getFlatness(self, band=None):
-        """Returns the flatness ratio (bandgap / bandwidth) for all bands,
-        unless a specifig band index is given."""
+        """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specifig band
+        index is given."""
 
         pass
 
     def getChernNumbers(self, band=None):
-        """Returns the Chern numbers for all bands, unless a specifig band
-        index is given."""
+        """Returns the Chern numbers for all bands, unless a specifig band index is given."""
 
         pass

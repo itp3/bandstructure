@@ -11,7 +11,7 @@ class Honeycomb(Lattice):
 
         a = np.linalg.norm(b2)
 
-        Lattice.addLatticevector(self,l1/a)
-        Lattice.addLatticevector(self,l2/a)
-        Lattice.addBasisvector(self,b1/a)
-        Lattice.addBasisvector(self,b2/a)
+        self.addLatticevector(l1/a)
+        self.addLatticevector(l2/a)
+        self.addBasisvector(b1/a)
+        self.addBasisvector(b2/a)
