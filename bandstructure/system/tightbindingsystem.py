@@ -3,7 +3,7 @@ import numpy as np
 from .system import System
 
 
-class TightBinding(System):
+class TightBindingSystem(System):
     def setSystemParams(self):
         self.setParams({'t': 1})
 

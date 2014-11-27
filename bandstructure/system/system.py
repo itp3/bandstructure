@@ -1,4 +1,5 @@
 import numpy as np
+import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
 
 
@@ -55,13 +56,30 @@ class System(metaclass=ABCMeta):
 
         return 0
 
+    def initializeHamiltonian(self):
+        """Constructs the Hamiltonian on the speficied lattice from tunnelingRate and onSite
+        energies."""
+
+        pass
+
+    def solve(self, kvals, threads=1):
+        """Solve the system for a given (set of) vectors in the Brillouin zone. kvals can be a
+        single vector or a list of vectors. In the latter case, the number of threads for
+        parallel computing can be specified."""
+
+        if type(kvals) == 'list':
+            pool = mp.Pool(threads)
+            pass
+        else:
+            pass
+
     def getFlatness(self, band=None):
-        """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specifig band
+        """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specific band
         index is given."""
 
         pass
 
     def getChernNumbers(self, band=None):
-        """Returns the Chern numbers for all bands, unless a specifig band index is given."""
+        """Returns the Chern numbers for all bands, unless a specific band index is given."""
 
         pass

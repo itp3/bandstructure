@@ -1,11 +1,13 @@
+#!/usr/bin/python3
+
 import sys
 sys.path.append("../")
 
-from bandstructure.system.tightbinding import TightBinding
-from bandstructure.lattice.square import Square
+from bandstructure.system import TightBindingSystem
+from bandstructure.lattice import SquareLattice
 
-l = Square()
-s = TightBinding(l)
+l = SquareLattice()
+s = TightBindingSystem(l)
 s.setParams({'t': 3})
 
 print("Parameters:")
