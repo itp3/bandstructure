@@ -3,13 +3,16 @@
 import sys
 sys.path.append("../")
 
-from bandstructure.lattice import Square
-from bandstructure.system import System
+from bandstructure.lattice import HoneycombLattice
+from bandstructure.system import TightBindingSystem
 from bandstructure.plot import Plot
 
-lattice = Square()
-system = System(lattice, {'t': 1})
+lattice = HoneycombLattice()
+system = TightBindingSystem(lattice, {'t': 1})
 plot = Plot(system)
+
+print(lattice.getKvectorsZone(20).shape)
+print(lattice.getDistances(100, 5).shape)
 
 plot.plotDispersion()
 

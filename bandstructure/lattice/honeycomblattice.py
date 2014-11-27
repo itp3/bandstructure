@@ -1,7 +1,7 @@
 import numpy as np
 from .lattice import Lattice
 
-class Honeycomb(Lattice):
+class HoneycombLattice(Lattice):
     def __init__(self):
         l1 = np.array([np.sqrt(3),1])/2
         l2 = np.array([np.sqrt(3),-1])/2

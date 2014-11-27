@@ -1,2 +1,3 @@
 from .lattice import Lattice
-from .square import Square
+from .squarelattice import SquareLattice
+from .honeycomblattice import HoneycombLattice
