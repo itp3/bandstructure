@@ -10,7 +10,7 @@ class Plot:
         """Plot the dispersion relation of the bands along a path in the Brillouin zone."""
 
         # TODO: this is just a hack for 1D right now
-        kvals = np.linspace(-np.pi, np.pi, 600)
+        kvals = np.linspace(-np.pi, np.pi, 300)
         kvecs = list(map(lambda x: [x, 0], kvals))
         energies = np.array(self.system.solve(kvecs))
 
