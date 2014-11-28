@@ -175,7 +175,10 @@ class Lattice():
         positions[idxPosition, idxCoordinate]"""
 
         # value that is added to the cutoff to be on the save side
-        safetyregion = 1*np.max(np.sqrt(np.sum(self.__params['vecsLattice']**2,axis=-1)))
+        if self.__params['vecsLattice'].shape[0] > 0:
+            safetyregion = 1*np.max(np.sqrt(np.sum(self.__params['vecsLattice']**2,axis=-1)))
+        else:
+            safetyregion = 0
 
         # array that will contain all positions
         positions = []
@@ -294,6 +297,39 @@ class Lattice():
         self.__params['vecsLattice'] = np.array([])
         self.__vecsReciprocal = np.array([])
         self.__params['vecsBasis'] = positionsAll
+
+    def makeFiniteAlongdirection(self,idxVecLattice, repetitions):
+        # number of sublattices
+        numSubs = self.__params['vecsBasis'].shape[0]
+
+        # === creation of all positions ===
+        positions = np.arange(repetitions)[:,None]*self.__params['vecsLattice'][idxVecLattice][None,:]
+        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__params['vecsBasis'][:,None]).reshape(-1,2)
+
+        # save the "more finite" system
+        boolarr = np.ones(self.__params['vecsLattice'].shape[0],dtype=bool)
+        boolarr[idxVecLattice] = False
+
+        self.__params['vecsLattice'] = self.__params['vecsLattice'][boolarr]
+        self.__params['vecsBasis'] = positionsAll
+
+
+        # === calculate the reciprocal vectors === #TODO Put it in a function & Safetyregion is not big enough if there are so many basis vectors --> safetyregion should be basis vector dependent
+        if self.__params['vecsLattice'].shape[0] == 0:
+            self.__vecsReciprocal = np.array([[0,0]])
+        elif self.__params['vecsLattice'].shape[0] == 1:
+            self.__vecsReciprocal = np.array([
+                2*np.pi*self.__params['vecsLattice'][0]/np.linalg.norm(self.__params['vecsLattice'][0])**2
+                ])
+        else:
+            self.__vecsReciprocal = np.array([
+                np.dot(np.array([[0,1],[-1,0]]),self.__params['vecsLattice'][1]),
+                np.dot(np.array([[0,-1],[1,0]]),self.__params['vecsLattice'][0])
+                ])
+            self.__vecsReciprocal[0] = 2*np.pi*self.__vecsReciprocal[0]/\
+                (np.vdot(self.__params['vecsLattice'][0], self.__vecsReciprocal[0]))
+            self.__vecsReciprocal[1] = 2*np.pi*self.__vecsReciprocal[1]/\
+                (np.vdot(self.__params['vecsLattice'][1], self.__vecsReciprocal[1]))
 
     def getDistances(self, cutoff):
         """Create a matrix that contains all distances from the central position of a
