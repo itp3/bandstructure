@@ -67,3 +67,4 @@ plt.imshow(kvectors, aspect='equal',interpolation='nearest')
 plt.show()
 
 print(lattice.getNNCutoff())
+print(lattice.getKvectorsPath(10))

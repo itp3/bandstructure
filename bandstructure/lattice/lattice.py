@@ -3,10 +3,7 @@ import itertools
 
 # TODOs
 # * periodic boundary conditions
-# * generation of k vectors
 # * makeFiniteAlongdirection
-
-
 
 class Lattice():
     __params = None
@@ -80,33 +77,6 @@ class Lattice():
         y = (vectorB[0]*np.vdot(vectorC,vectorC)-vectorC[0]*np.vdot(vectorB,vectorB))/D
         return np.array([x,y])
 
-
-    '''# high symmetry points
-    point_Gamma = np.array([0,0])
-    point_X = lattice_vector1reciprocal/2
-    point_M = calcCircumcenter(lattice_vector1reciprocal,\
-        lattice_vector2reciprocal+lattice_vector1reciprocal)
-    points = [point_M,point_Gamma,point_X,point_M]
-
-    # path through the points
-    stepsize = (np.pi/1)/brillouinzonepath_resolution
-
-    brillouinzonepath_positions = [None]*4
-    for n in range(1,len(points)):
-        start = points[n-1]
-        end = points[n]
-        numsteps = np.round(np.linalg.norm(end-start)/stepsize)
-        brillouinzonepath_positions[n-1] = np.transpose([np.linspace(start[0],end[0],numsteps),\
-            np.linspace(start[1],end[1],numsteps)])[:-1]
-    brillouinzonepath_positions[3] = brillouinzonepath_positions[0][0]
-    brillouinzonepath_positions = np.vstack(brillouinzonepath_positions)
-
-    # length of the path
-    gamma_idx = np.all(brillouinzonepath_positions == 0,axis=1)
-    brillouinzonepath_length = np.cumsum(np.linalg.norm(np.append([[0,0]],\
-        np.diff(brillouinzonepath_positions,axis=0),axis=0),axis=1))
-    brillouinzonepath_length -= brillouinzonepath_length[gamma_idx]'''
-
     def getKvectorsZone(self, resolution):
         """Calculate a matrix that contains all the kvectors of the Brillouin zone
 
@@ -151,9 +121,41 @@ class Lattice():
 
         return positions
 
-    def getKvectorsPath(self, resolution):
-        #return self.__posBrillouinPath
-        return np.random.rand(int(1.1*resolution*3),2) # idxK, idxCoord
+    def getKvectorsPath(self, resolution, points=None):
+        """Calculate an array that contains the kvectors of a path through the Brillouin zone
+
+        kvectors = getKvectorsPath(resolution, points=[[0,0],[0,1]])
+        kvectors[idxPosition, idxCoordinate]"""
+
+        if points == None:
+            if self.__vecsReciprocal.shape[0] == 0:
+                points = [[0,0],[0,0]]
+            else:
+                points = [[0,0],self.__vecsReciprocal[0]/2]
+        points = np.array(points)
+        numPoints = points.shape[0]
+
+        # path through the points
+        stepsize = np.sum(np.sqrt(np.sum(np.diff(points,axis=0)**2,axis=-1)))/resolution
+
+        positions = [None]*(numPoints-1)
+        for n in range(1,numPoints):
+            start = points[n-1]
+            end = points[n]
+            steps = np.round(np.linalg.norm(end-start)/stepsize)
+
+            newpos = np.transpose([np.linspace(start[0],end[0],steps),\
+                np.linspace(start[1],end[1],steps)])
+
+            if n < numPoints-1: positions[n-1] = newpos[:-1]
+            else: positions[n-1] = newpos
+        positions = np.vstack(positions)
+
+        # length of the path
+        length = np.cumsum(np.sqrt(np.sum(np.append([[0,0]],\
+            np.diff(positions,axis=0),axis=0)**2,axis=1)))
+
+        return positions, length
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.
