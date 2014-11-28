@@ -15,8 +15,13 @@ class TightBindingSystem(System):
         t2 = self.get("t2")
 
         # Nearest neighbors:
-        nn = np.linalg.norm(dr, axis=3) == 1   # TODO! get the real nearest neighbor distance
-        nnn = np.linalg.norm(dr, axis=3) == 2  # TODO!
+
+        # Only with newest numpy version:
+        # nn = np.linalg.norm(dr, axis=3) == 1   # TODO! get the real nearest neighbor distance
+        # nnn = np.linalg.norm(dr, axis=3) == 2  # TODO!
+
+        nn = np.sqrt(np.sum(dr ** 2, axis=3)) == 1   # TODO! get the real nearest neighbor distance
+        nnn = np.sqrt(np.sum(dr ** 2, axis=3)) == 2  # TODO
 
         # Orbital matrix
         m = np.array([[1, 0], [0, -1]])
