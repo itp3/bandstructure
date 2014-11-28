@@ -22,7 +22,5 @@ s = TightBindingSystem(l, params)
 print("Parameters:")
 s.params.showParams()
 
-print(s.getHamiltonian([0, 0]))
-
 p = Plot(s)
 p.plotDispersionPath()
