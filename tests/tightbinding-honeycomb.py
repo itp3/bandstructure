@@ -61,10 +61,14 @@ plt.show()
 
 # --- distance matrix ---
 kvectors = lattice.getKvectorsZone(100)
-kvectors = np.sqrt(np.sum(kvectors**2,axis=-1))
+kvectorslength = np.sqrt(np.sum(kvectors**2,axis=-1))
 
-plt.imshow(kvectors, aspect='equal',interpolation='nearest')
+plt.imshow(kvectorslength, aspect='equal',interpolation='nearest',extent=(np.min(kvectors[:,:,1]),np.max(kvectors[:,:,1]),np.min(kvectors[:,:,0]),np.max(kvectors[:,:,0])))
+
+pathVecs, pathLength = lattice.getKvectorsPath(10)
+plt.plot(pathVecs[:,1],pathVecs[:,0],'k-',lw=2)
+
 plt.show()
 
+# --- nearest neighbor cutoff ---
 print(lattice.getNNCutoff())
-print(lattice.getKvectorsPath(10))

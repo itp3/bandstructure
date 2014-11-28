@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+from scipy.ndimage import binary_dilation
 
 # TODOs
 # * periodic boundary conditions
@@ -77,10 +78,10 @@ class Lattice():
         y = (vectorB[0]*np.vdot(vectorC,vectorC)-vectorC[0]*np.vdot(vectorB,vectorB))/D
         return np.array([x,y])
 
-    def getKvectorsZone(self, resolution):
-        """Calculate a matrix that contains all the kvectors of the Brillouin zone
+    def getKvectorsZone(self, resolution, dilation = True):
+        """Calculate a matrix that contains all the kvectors of the Brillouin zone.
 
-        kvectors = getKvectorsZone(resolution)
+        kvectors = getKvectorsZone(resolution, dilation = True)
         kvectors[idxX, idxY, idxCoordinate]"""
 
         if self.__vecsReciprocal.shape[0] == 0:
@@ -114,10 +115,18 @@ class Lattice():
             distances -= reciprocalpositions[:,None,None,:]
             distances = np.sqrt(np.sum(distances**2,axis=-1))
 
-            # mask all points that are not close to the central position
+            # --- mask all points that are not close to the central position ---
             positionsMask = np.argmin(distances,axis=0) > 0
+
+            # make the mask a little bit smaller
+            if dilation: positionsMask = ~binary_dilation(~positionsMask)
+
+            # slice the matrices
+            si, se = np.where(~positionsMask)
+            slice = np.s_[si.min():si.max() + 1, se.min():se.max() + 1]
+
             positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
-            positions = np.ma.array(positions, mask = positionsMask)
+            positions = np.ma.array(positions[slice], mask = positionsMask[slice])
 
         return positions
 
@@ -142,7 +151,9 @@ class Lattice():
         for n in range(1,numPoints):
             start = points[n-1]
             end = points[n]
-            steps = np.round(np.linalg.norm(end-start)/stepsize)
+
+            if stepsize == 0: steps = 1
+            else: steps = np.max([np.round(np.linalg.norm(end-start)/stepsize),1])
 
             newpos = np.transpose([np.linspace(start[0],end[0],steps),\
                 np.linspace(start[1],end[1],steps)])
