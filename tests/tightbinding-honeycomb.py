@@ -9,36 +9,29 @@ from bandstructure.plot import Plot
 
 lattice = HoneycombLattice()
 system = TightBindingSystem(lattice, {'t': 1})
-plot = Plot(system)
-
-print(lattice.getKvectorsZone(20).shape)
-print(lattice.getDistances(100, 5).shape)
-
-plot.plotDispersion()
+#plot = Plot(system)
+#plot.plotDispersion()
 
 
+# === tests ===
+import matplotlib.pyplot as plt
+import numpy as np
 
+# --- distance matrix ---
 
-'''# parallel
-myfirstlattices = []
-for angle in np.linspace(0,np.pi,5):
-    lattice = Honeycomb()
-    lattice.setAngle(angle)
-    lattice.
+distances = lattice.getDistances(20)
 
-    for w in ...:
-        dictSystemSettings = {..., 'w':w}
-        mysystems = System(lattice, dictSystemSettings)
-        mysystems.calculateChernnumbers()
+nSubs = distances.shape[0]
+nLinks = distances.shape[2]
 
-        Analyzer
+distances = np.sqrt(np.sum(distances**2,axis=-1)).reshape(nSubs,nLinks*nSubs).T
+plt.imshow(distances, aspect='auto',interpolation='nearest')
+plt.show()
 
-        Plotter(mysystems)
+# --- positions ---
 
-lattice.set
+positions = lattice.getPositions(20)
 
-
-Plotter(fileSystem)
-
-pep8
-'''
+plt.plot(positions[:,0],positions[:,1], 'ko',ms=3)
+plt.axes().set_aspect('equal', 'datalim')
+plt.show()

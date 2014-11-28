@@ -1,5 +1,13 @@
 import numpy as np
 
+# TODOs
+# * get nearest neighbor cutoff
+# * docstrings
+# * periodic boundary conditions
+# * generation of k vectors
+
+
+
 class Lattice():
     __latticevectors = []
     __latticevectorsReciprocal = []
@@ -72,9 +80,85 @@ class Lattice():
         #return self.__posBrillouinPath
         return np.random.rand(int(1.1*resolution*3),2) # idxK, idxCoord
 
-    def getDistances(self, resolution, cutoff):
-        #return self.__posBrillouinZone
-        numSubs = len(self.__basisvectors)
-        return np.random.rand(numSubs,numSubs,10*cutoff,2) # idxSub1, idxSub2, idxLink, idxCoord
+    def getPositions(self, cutoff):
+        safetyregion = 1*max(np.linalg.norm(self.__latticevectors[0]),np.linalg.norm(self.__latticevectors[1])) #TODO
 
+        positions = []
 
+        shiftidx1 = 0
+        while True:
+            shiftedpos1 = shiftidx1*self.__latticevectors[1]
+            shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__latticevectors[0])/\
+                np.linalg.norm(self.__latticevectors[0])**2 )*self.__latticevectors[0]
+
+            if shiftidx1 < 0: shiftidx1 -= 1
+            else: shiftidx1 += 1
+
+            if np.linalg.norm(shiftedpos1) > cutoff+safetyregion:
+                if shiftidx1 > 0:
+                    shiftidx1 = -1
+                    continue
+                else:
+                    break
+
+            shiftidx0 = 0
+            while True:
+                shiftedpos0 = shiftidx0*self.__latticevectors[0]
+                shiftedpos = shiftedpos1+shiftedpos0
+
+                if shiftidx0 < 0: shiftidx0 -= 1
+                else: shiftidx0 += 1
+
+                if np.linalg.norm(shiftedpos) > cutoff+safetyregion:
+                    if shiftidx0 > 0:
+                        shiftidx0 = -1
+                        continue
+                    else:
+                        break
+
+                positions.append(shiftedpos)
+
+        return np.array(positions)
+
+    def getDistances(self, cutoff):
+        """Creates a matrix that contains all distances from the central position of a
+        sublattice to all positions of another one.
+
+        distances = getDistances(cutoff)
+        distances[idxSublattice1, idxSublattice2, idxLink, idxCoordinate]"""
+
+        # positions generated from the lattice vectors
+        positions = self.getPositions(cutoff)
+        sorter = np.argsort(np.sum(positions**2,axis=-1))
+        positions = positions[sorter]
+
+        # shifts given by the basisvectors
+        shifts = np.array(self.__basisvectors)
+
+        # === numbers ===
+        # maximal number of links between the central position of a sublattice and all positions of another one
+        numLinks = positions.shape[0]
+
+        # number of sublattices
+        numSubs = shifts.shape[0]
+
+        # === creation of the distance matrix ===
+        # array of central positions [Sub, Coord] that will be repeated to create the matrix matDeltaR
+        positionsCentral = np.array(shifts)
+
+        # array of all positions [Sub, Link, Coord] that will be repeated to create the matrix matDeltaR
+        positionsAll = np.tile(positions, (numSubs,1,1)) + positionsCentral[:,None]
+
+        # creation of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
+        matPositionsCentral = np.tile(positionsCentral, (numLinks,numSubs, 1,1)).transpose(2,1,0,3)
+        matPositionsAll = np.tile(positionsAll, (numSubs,1,1,1))
+        matDeltaR = matPositionsAll-matPositionsCentral
+
+        # masking of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
+        matDeltaRAbs = np.sqrt(np.sum(matDeltaR**2,axis=-1))
+        matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < 1e-32) | \
+            ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None]
+        matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
+        matDeltaR = np.ma.array(matDeltaR, mask = matDeltaRMask)
+
+        return matDeltaR
