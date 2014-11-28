@@ -21,3 +21,4 @@ print("Parameters:")
 s.params.showParams()
 
 p = Plot(s)
+p.plotDispersionPath()

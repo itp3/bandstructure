@@ -6,8 +6,10 @@ sys.path.append("../")
 from bandstructure.lattice import HoneycombLattice
 from bandstructure.system import TightBindingSystem
 from bandstructure.plot import Plot
+from bandstructure import Parameters
 
-lattice = HoneycombLattice()
+params = Parameters()
+lattice = HoneycombLattice(params)
 #lattice.makeFiniteCircle(2)
 #lattice.makeFiniteRectangle(8,10,center=[0.5,0])
 #lattice.makeFiniteAlongdirection(latticevector=0, repetitions=5)
