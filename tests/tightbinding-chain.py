@@ -4,6 +4,7 @@ import sys
 sys.path.append("../")
 import numpy as np
 
+from bandstructure import Parameters
 from bandstructure.system import TightBindingSystem
 from bandstructure.lattice import Lattice
 from bandstructure.plot import Plot
@@ -18,11 +19,11 @@ class Chain(Lattice):
             [2, 0]
         ]]])
 
-params = {
+params = Parameters({
     'cutoff': 2.1,
     't': 1,
     't2': 0
-}
+})
 
 l = Chain(params)
 s = TightBindingSystem(l, params)

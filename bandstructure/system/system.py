@@ -15,8 +15,8 @@ class System(metaclass=ABCMeta):
         self.params = Parameters()
 
         # TODO: get 'default cutoff' from Lattice class
-        # self.set("cutoff", lattice.getNearestNeighborCutoff())
-        self.params["cutoff"] = 1.1
+        # self.params['cutoff'] = lattice.getNearestNeighborCutoff()
+        self.params['cutoff'] = 1.1
 
         self.setDefaultParams()
 
