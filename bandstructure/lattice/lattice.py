@@ -9,9 +9,9 @@ import numpy as np
 
 
 class Lattice():
-    __latticevectors = []
-    __latticevectorsReciprocal = []
-    __basisvectors = []
+    __latticevectors = np.array([])
+    __latticevectorsReciprocal = np.array([])
+    __basisvectors = np.array([])
     __posBrillouinZone = None
     __posBrillouinPath = None
 
@@ -35,25 +35,30 @@ class Lattice():
     lattice_matreciprocal           = np.array([lattice_vector1reciprocal, lattice_vector2reciprocal]).T'''
 
     def addLatticevector(self,vector):
-        """adds a lattice vector and calculate the reciprocal vectors"""
+        """Add a lattice vector and calculate the reciprocal vectors."""
 
-        # --- add lattice vector ---
+        # === add lattice vector ===
+        # validation of vector shape
         vector = np.array(vector)
         if vector.shape != (2,):
             raise Exception("Lattice vectors have to be 2D vectors.")
 
-        self.__latticevectors.append(vector)
+        # append vector to the array of lattice vectors
+        if self.__latticevectors.shape[0] == 0:
+            self.__latticevectors = np.array([vector])
+        else:
+            self.__latticevectors = np.append(self.__latticevectors,[vector], axis=0)
 
-        if len(self.__latticevectors) > 2:
+        # validation of lattice vector number
+        if self.__latticevectors.shape[0] > 2:
             raise Exception("There must be at most 2 lattice vectors.")
 
-        # --- calculate the reciprocal vectors ---
-        if len(self.__latticevectors) == 1:
+        # === calculate the reciprocal vectors ===
+        if self.__latticevectors.shape[0] == 1:
             self.__latticevectorsReciprocal = [
                 2*np.pi*self.__latticevectors[0]/np.linalg.norm(self.__latticevectors[0])**2
                 ]
-
-        elif len(self.__latticevectors) == 2: #TODO
+        else:
             self.__latticevectorsReciprocal = [
                 np.dot(np.array([[0,1],[-1,0]]),self.__latticevectors[1]),
                 np.dot(np.array([[0,-1],[1,0]]),self.__latticevectors[0])
@@ -64,13 +69,19 @@ class Lattice():
                 (np.vdot(self.__latticevectors[1], self.__latticevectorsReciprocal[1]))
 
     def addBasisvector(self,vector):
-        """adds a basis vector"""
+        """Add a basis vector."""
 
+        # === add basis vector ===
+        # validation of vector shape
         vector = np.array(vector)
         if vector.shape != (2,):
             raise Exception("Basis vectors have to be 2D vectors.")
 
-        self.__basisvectors.append(vector)
+        # append vector to the array of lattice vectors
+        if self.__basisvectors.shape[0] == 0:
+            self.__basisvectors = np.array([vector])
+        else:
+            self.__basisvectors = np.append(self.__basisvectors,[vector], axis=0)
 
     def getKvectorsZone(self, resolution):
         #return self.__posBrillouinZone
@@ -81,51 +92,126 @@ class Lattice():
         return np.random.rand(int(1.1*resolution*3),2) # idxK, idxCoord
 
     def getPositions(self, cutoff):
-        safetyregion = 1*max(np.linalg.norm(self.__latticevectors[0]),np.linalg.norm(self.__latticevectors[1])) #TODO
+        """Generate all positions from the lattice vectors using [0,0] as the basis vector.
 
+        positions = getPositions(cutoff)
+        positions[idxPosition, idxCoordinate]"""
+
+        # value that is added to the cutoff to be on the save side
+        safetyregion = 1*np.max(np.sqrt(np.sum(self.__latticevectors**2,axis=-1)))
+
+        # array that will contain all positions
         positions = []
 
+        # --- first shift (do it only if two lattice vectors exist) ---
         shiftidx1 = 0
-        while True:
-            shiftedpos1 = shiftidx1*self.__latticevectors[1]
-            shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__latticevectors[0])/\
-                np.linalg.norm(self.__latticevectors[0])**2 )*self.__latticevectors[0]
+        boolLoop1 = True
+        while boolLoop1:
+            if self.__latticevectors.shape[0] >= 2:
+                shiftedpos1 = shiftidx1*self.__latticevectors[1]
 
-            if shiftidx1 < 0: shiftidx1 -= 1
-            else: shiftidx1 += 1
+                # substract the other lattice vector to be as central as possible inside the cutoff region
+                shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__latticevectors[0])/\
+                    np.linalg.norm(self.__latticevectors[0])**2 )*self.__latticevectors[0]
 
-            if np.linalg.norm(shiftedpos1) > cutoff+safetyregion:
-                if shiftidx1 > 0:
-                    shiftidx1 = -1
-                    continue
-                else:
-                    break
+                if shiftidx1 < 0: shiftidx1 -= 1
+                else: shiftidx1 += 1
 
-            shiftidx0 = 0
-            while True:
-                shiftedpos0 = shiftidx0*self.__latticevectors[0]
-                shiftedpos = shiftedpos1+shiftedpos0
-
-                if shiftidx0 < 0: shiftidx0 -= 1
-                else: shiftidx0 += 1
-
-                if np.linalg.norm(shiftedpos) > cutoff+safetyregion:
-                    if shiftidx0 > 0:
-                        shiftidx0 = -1
+                # change looping direction / break if the shift is larger than a cutoff
+                if np.linalg.norm(shiftedpos1) > cutoff+safetyregion:
+                    if shiftidx1 > 0:
+                        shiftidx1 = -1
                         continue
                     else:
                         break
+            else:
+                shiftedpos1 = np.array([0,0])
+                boolLoop1 = False
 
+            # --- second shift (do it only if at least one lattice vector exists) ---
+            shiftidx0 = 0
+            boolLoop0 = True
+            while boolLoop0:
+                if self.__latticevectors.shape[0] >= 1:
+                    shiftedpos0 = shiftidx0*self.__latticevectors[0]
+
+                    # add together all shifts
+                    shiftedpos = shiftedpos1+shiftedpos0
+
+                    if shiftidx0 < 0: shiftidx0 -= 1
+                    else: shiftidx0 += 1
+
+                    # change looping direction / break if the sum of shifts is larger than a cutoff
+                    if np.linalg.norm(shiftedpos) > cutoff+safetyregion:
+                        if shiftidx0 > 0:
+                            shiftidx0 = -1
+                            continue
+                        else:
+                            break
+                else:
+                    shiftedpos = np.array([0,0])
+                    boolLoop0 = False
+
+                # append the sum of shifts to the array of positions
                 positions.append(shiftedpos)
 
         return np.array(positions)
 
+    def getGeometry(self, cutoff):
+        """Generate all positions from the lattice vectors using all the basis vectors.
+
+        geometry = getGeometry(cutoff)
+        geometry[idxSublattice, idxPosition, idxCoordinate]"""
+
+        # number of sublattices
+        numSubs = self.__basisvectors.shape[0]
+
+        # === creation of all positions ===
+        positions = self.getPositions(cutoff)
+        positionsAll = np.tile(positions, (numSubs,1,1)) + self.__basisvectors[:,None]
+
+        return positionsAll
+
+    def makeFiniteCircle(self, cutoff):
+        """Generate a finite circular lattice.
+
+        makeFiniteCircle(radius)"""
+
+        positionsAll = self.getGeometry(cutoff).reshape(-1,2)
+
+        # masking
+        positionsAllAbs = np.sqrt(np.sum(positionsAll**2,axis=-1))
+        positionsAllMask = (positionsAllAbs > cutoff)
+        positionsAll = positionsAll[~positionsAllMask]
+
+        # save the finite system as basisvectors
+        self.__latticevectors = np.array([])
+        self.__latticevectorsReciprocal = np.array([])
+        self.__basisvectors = positionsAll
+
+    def makeFiniteRectangle(self, cutoffX, cutoffY):
+        """Generate a finite rectangular lattice.
+
+        makeFiniteCircle(2*width,2*height)"""
+
+        positionsAll = self.getGeometry(np.sqrt(2)*max(cutoffX,cutoffY)).reshape(-1,2)
+
+        # masking
+        positionsAllMask = (np.abs(positionsAll[:,0]) > cutoffX) | \
+            (np.abs(positionsAll[:,1]) > cutoffY)
+        positionsAll = positionsAll[~positionsAllMask]
+
+        # save the finite system as basisvectors
+        self.__latticevectors = np.array([])
+        self.__latticevectorsReciprocal = np.array([])
+        self.__basisvectors = positionsAll
+
     def getDistances(self, cutoff):
-        """Creates a matrix that contains all distances from the central position of a
+        """Create a matrix that contains all distances from the central position of a
         sublattice to all positions of another one.
 
         distances = getDistances(cutoff)
-        distances[idxSublattice1, idxSublattice2, idxLink, idxCoordinate]"""
+        distances[idxSublatticeTo, idxSublatticeFrom, idxLink, idxCoordinate]"""
 
         # positions generated from the lattice vectors
         positions = self.getPositions(cutoff)
@@ -133,7 +219,7 @@ class Lattice():
         positions = positions[sorter]
 
         # shifts given by the basisvectors
-        shifts = np.array(self.__basisvectors)
+        shifts = self.__basisvectors
 
         # === numbers ===
         # maximal number of links between the central position of a sublattice and all positions of another one
@@ -144,7 +230,7 @@ class Lattice():
 
         # === creation of the distance matrix ===
         # array of central positions [Sub, Coord] that will be repeated to create the matrix matDeltaR
-        positionsCentral = np.array(shifts)
+        positionsCentral = shifts
 
         # array of all positions [Sub, Link, Coord] that will be repeated to create the matrix matDeltaR
         positionsAll = np.tile(positions, (numSubs,1,1)) + positionsCentral[:,None]

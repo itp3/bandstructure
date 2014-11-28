@@ -8,6 +8,9 @@ from bandstructure.system import TightBindingSystem
 from bandstructure.plot import Plot
 
 lattice = HoneycombLattice()
+lattice.makeFiniteCircle(10)
+#lattice.makeFiniteRectangle(8,10)
+
 system = TightBindingSystem(lattice, {'t': 1})
 #plot = Plot(system)
 #plot.plotDispersion()
@@ -17,9 +20,11 @@ system = TightBindingSystem(lattice, {'t': 1})
 import matplotlib.pyplot as plt
 import numpy as np
 
+cutoff = 15
+
 # --- distance matrix ---
 
-distances = lattice.getDistances(20)
+distances = lattice.getDistances(cutoff)
 
 nSubs = distances.shape[0]
 nLinks = distances.shape[2]
@@ -30,8 +35,27 @@ plt.show()
 
 # --- positions ---
 
-positions = lattice.getPositions(20)
+positions = lattice.getPositions(cutoff)
 
-plt.plot(positions[:,0],positions[:,1], 'ko',ms=3)
-plt.axes().set_aspect('equal', 'datalim')
+fig = plt.gcf()
+fig.gca().add_artist(plt.Circle((0,0),cutoff,fc='0.9',ec='k'))
+
+plt.plot(positions[:,0],positions[:,1], 'ko',ms=5)
+plt.axes().set_aspect('equal')
+plt.xlim(-1.3*cutoff,1.3*cutoff)
+plt.ylim(-1.3*cutoff,1.3*cutoff)
+plt.show()
+
+# --- geometry ---
+
+geometry = lattice.getGeometry(cutoff)
+
+fig = plt.gcf()
+fig.gca().add_artist(plt.Circle((0,0),cutoff,fc='0.9',ec='k'))
+
+for p in geometry:
+    plt.plot(p[:,0],p[:,1], 'o',ms=5)
+plt.axes().set_aspect('equal')
+plt.xlim(-1.3*cutoff,1.3*cutoff)
+plt.ylim(-1.3*cutoff,1.3*cutoff)
 plt.show()
