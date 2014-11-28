@@ -59,5 +59,11 @@ plt.xlim(-1.3*cutoff,1.3*cutoff)
 plt.ylim(-1.3*cutoff,1.3*cutoff)
 plt.show()
 
+# --- distance matrix ---
+kvectors = lattice.getKvectorsZone(100)
+kvectors = np.sqrt(np.sum(kvectors**2,axis=-1))
+
+plt.imshow(kvectors, aspect='equal',interpolation='nearest')
+plt.show()
 
 print(lattice.getNNCutoff())

@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 
 # TODOs
 # * periodic boundary conditions
@@ -17,6 +18,10 @@ class Lattice():
         self.__params = params
         self.__params['vecsLattice'] = np.array([])
         self.__params['vecsBasis'] = np.array([])
+        self.initialize()
+
+    def initialize(self):
+        pass
 
     def addLatticevector(self,vector):
         """Add a lattice vector and calculate the reciprocal vectors."""
@@ -39,14 +44,14 @@ class Lattice():
 
         # === calculate the reciprocal vectors ===
         if self.__params['vecsLattice'].shape[0] == 1:
-            self.__vecsReciprocal = [
+            self.__vecsReciprocal = np.array([
                 2*np.pi*self.__params['vecsLattice'][0]/np.linalg.norm(self.__params['vecsLattice'][0])**2
-                ]
+                ])
         else:
-            self.__vecsReciprocal = [
+            self.__vecsReciprocal = np.array([
                 np.dot(np.array([[0,1],[-1,0]]),self.__params['vecsLattice'][1]),
                 np.dot(np.array([[0,-1],[1,0]]),self.__params['vecsLattice'][0])
-                ]
+                ])
             self.__vecsReciprocal[0] = 2*np.pi*self.__vecsReciprocal[0]/\
                 (np.vdot(self.__params['vecsLattice'][0], self.__vecsReciprocal[0]))
             self.__vecsReciprocal[1] = 2*np.pi*self.__vecsReciprocal[1]/\
@@ -76,8 +81,16 @@ class Lattice():
         return np.array([x,y])
 
     def getKvectorsZone(self, resolution):
-        if self.__vecsReciprocal.shape[0] == 1:
-            return None
+        """Calculate a matrix that contains all the kvectors of the Brillouin zone
+
+        kvectors = getKvectorsZone(resolution)
+        kvectors[idxX, idxY, idxCoordinate]"""
+
+        if self.__vecsReciprocal.shape[0] == 0:
+            positions = np.array([[[0,0]]])
+
+        elif self.__vecsReciprocal.shape[0] == 1:
+            positions = None # TODO
 
         else:
             # reciprocal positions
@@ -87,79 +100,24 @@ class Lattice():
             for n,[x,y] in enumerate(itertools.product([0,-1,1],[0,-1,1])):
                 reciprocalpositions[n] = np.dot(matTrafo, [x,y])
 
-
-            # calculate "radius" of the Brillouizone
-            '''cornerOfBrillouizone = calcCircumcenter(self.__vecsReciprocal[0],\
-                self.__vecsReciprocal[1]+__vecsReciprocal[0])
-            radius = np.linalg.norm(cornerOfBrillouizone)
-
-            safetyregion = 2*radius/resoultion
-            radius += safetyregion'''
+            # calculate "radius" of the Brillouin zone
+            radius = np.max(np.sqrt(np.sum(self.__vecsReciprocal**2,axis=-1)))
 
             # generate a matrix [IdxX, IdxY, Coord] that stores the positions inside the brillouinzone
-            positions=np.mgrid[-radius:radius:2j*resoultion,\
-                -radius:radius:2j*resoultion,].transpose(1,2,0)
+            positions=np.mgrid[-radius:radius:2j*resolution,\
+                -radius:radius:2j*resolution,].transpose(1,2,0)
 
-            '''# mask regions inside the matrix that do not belong to the brillouinzone
-            distancecache = np.ones_like(brillouinzone_positions[:,:,0])*100/1
-            for n, pos in enumerate(lattice_positionsreciprocal):
-                distances = np.sum((brillouinzone_positions-pos)**2,axis=-1)
-                smaller =  distances < distancecache
-                distancecache[smaller] = distances[smaller]
+            # calculate the distances of the matrix points from the reciprocal positions
+            distances = np.tile(positions, (reciprocalpositions.shape[0],1,1,1))
+            distances -= reciprocalpositions[:,None,None,:]
+            distances = np.sqrt(np.sum(distances**2,axis=-1))
 
-                if n != 0: brillouinzone_mask[smaller] = False
-
+            # mask all points that are not close to the central position
+            positionsMask = np.argmin(distances,axis=0) > 0
+            positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
             positions = np.ma.array(positions, mask = positionsMask)
 
         return positions
-
-
-        brillouinzone_mask = np.ones_like(brillouinzone_positions[:,:,0],dtype=np.bool)
-
-
-
-
-        r = np.linalg.norm(point_M)
-
-        dr =
-        brillouinzone_maxX = r+dr
-        brillouinzone_maxY = r+dr
-        brillouinzone_minX = -r-dr
-        brillouinzone_minY = -r-dr
-        resfactor = (brillouinzone_maxX-brillouinzone_minX)/(brillouinzone_maxY-brillouinzone_minY)
-        if resfactor >= 1:
-            brillouinzone_resolutionX = brillouinzone_resolution
-            brillouinzone_resolutionY = brillouinzone_resolution/resfactor
-        else:
-            brillouinzone_resolutionX = brillouinzone_resolution*resfactor
-            brillouinzone_resolutionY = brillouinzone_resolution
-
-        brillouinzone_positions=np.mgrid[brillouinzone_minX:brillouinzone_maxX:1j*brillouinzone_resolutionX,\
-            brillouinzone_minY:brillouinzone_maxY:1j*brillouinzone_resolutionY].transpose(1,2,0)
-        brillouinzone_mask = np.ones_like(brillouinzone_positions[:,:,0],dtype=np.bool)
-
-        distancecache = np.ones_like(brillouinzone_positions[:,:,0])*100/1
-        for n, pos in enumerate(lattice_positionsreciprocal):
-            distances = np.sum((brillouinzone_positions-pos)**2,axis=-1)
-            smaller =  distances < distancecache
-            distancecache[smaller] = distances[smaller]
-
-            if n != 0: brillouinzone_mask[smaller] = False
-
-
-
-
-
-
-
-
-
-
-
-
-
-        #return self.__posBrillouinZone
-        return np.random.rand(int(0.86*resolution**2),2) # idxK, idxCoord'''
 
     def getKvectorsPath(self, resolution):
         #return self.__posBrillouinPath
@@ -249,7 +207,7 @@ class Lattice():
     def getNNCutoff(self):
         """Return the smallest distance that occures in the lattice (nearest neighbor cutoff)."""
 
-        nearpositions = self.getGeometry(0).reshape(-1,2)
+        nearpositions = self.getGeometry(np.max(np.sqrt(np.sum(self.__params['vecsLattice']**2,axis=-1)))).reshape(-1,2)
 
         # subtract central position
         nearpositions -= nearpositions[0]
