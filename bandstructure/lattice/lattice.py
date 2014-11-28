@@ -80,6 +80,33 @@ class Lattice():
         y = (vectorB[0]*np.vdot(vectorC,vectorC)-vectorC[0]*np.vdot(vectorB,vectorB))/D
         return np.array([x,y])
 
+
+    '''# high symmetry points
+    point_Gamma = np.array([0,0])
+    point_X = lattice_vector1reciprocal/2
+    point_M = calcCircumcenter(lattice_vector1reciprocal,\
+        lattice_vector2reciprocal+lattice_vector1reciprocal)
+    points = [point_M,point_Gamma,point_X,point_M]
+
+    # path through the points
+    stepsize = (np.pi/1)/brillouinzonepath_resolution
+
+    brillouinzonepath_positions = [None]*4
+    for n in range(1,len(points)):
+        start = points[n-1]
+        end = points[n]
+        numsteps = np.round(np.linalg.norm(end-start)/stepsize)
+        brillouinzonepath_positions[n-1] = np.transpose([np.linspace(start[0],end[0],numsteps),\
+            np.linspace(start[1],end[1],numsteps)])[:-1]
+    brillouinzonepath_positions[3] = brillouinzonepath_positions[0][0]
+    brillouinzonepath_positions = np.vstack(brillouinzonepath_positions)
+
+    # length of the path
+    gamma_idx = np.all(brillouinzonepath_positions == 0,axis=1)
+    brillouinzonepath_length = np.cumsum(np.linalg.norm(np.append([[0,0]],\
+        np.diff(brillouinzonepath_positions,axis=0),axis=0),axis=1))
+    brillouinzonepath_length -= brillouinzonepath_length[gamma_idx]'''
+
     def getKvectorsZone(self, resolution):
         """Calculate a matrix that contains all the kvectors of the Brillouin zone
 
@@ -87,12 +114,17 @@ class Lattice():
         kvectors[idxX, idxY, idxCoordinate]"""
 
         if self.__vecsReciprocal.shape[0] == 0:
+            # === 0D Brillouin zone ===
             positions = np.array([[[0,0]]])
 
         elif self.__vecsReciprocal.shape[0] == 1:
-            positions = None # TODO
+            # === 1D Brillouin zone ===
+            pos = self.__vecsReciprocal[0]/2
+            positions = np.array([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
+                np.linspace(-pos[1],pos[1],resolution)])])
 
         else:
+            # === 2D Brillouin zone ===
             # reciprocal positions
             matTrafo = np.array([self.__vecsReciprocal[0], self.__vecsReciprocal[1]]).T
 
