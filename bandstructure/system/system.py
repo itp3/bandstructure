@@ -12,15 +12,13 @@ class System(metaclass=ABCMeta):
     def __init__(self, lattice, params):
         self.lattice = lattice
 
-        self.params = Parameters()
+        self.params = params
 
         # TODO: get 'default cutoff' from Lattice class
-        # self.params['cutoff'] = lattice.getNearestNeighborCutoff()
-        self.params['cutoff'] = 1.1
+        # lattice.getNearestNeighborCutoff()
+        self.params.setdefault('cutoff', 1.1)
 
         self.setDefaultParams()
-
-        self.params.update(params)
 
     def get(self, paramName):
         """Shortcut to a certain parameter"""

@@ -6,30 +6,23 @@ import numpy as np
 
 from bandstructure import Parameters
 from bandstructure.system import TightBindingSystem
-from bandstructure.lattice import Lattice
+from bandstructure.lattice import RegularChain
 from bandstructure.plot import Plot
 
 
-class Chain(Lattice):
-    def getDistances(self, _):
-        return np.array([[[
-            [-2, 0],
-            [-1, 0],
-            [1, 0],
-            [2, 0]
-        ]]])
-
 params = Parameters({
-    'cutoff': 2.1,
+    'cutoff': 10.1,
     't': 1,
-    't2': 0
+    't2': 1
 })
 
-l = Chain(params)
+l = RegularChain(params)
 s = TightBindingSystem(l, params)
 
 print("Parameters:")
 s.params.showParams()
+
+print(s.getHamiltonian([0, 0]))
 
 p = Plot(s)
 p.plotDispersionPath()
