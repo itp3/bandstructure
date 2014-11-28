@@ -5,7 +5,7 @@ from .system import System
 
 class TightBindingSystem(System):
     def setDefaultParams(self):
-        self.setParams({
+        self.params.update({
             "t": 1,  # nearest neighbor tunneling strength
             "t2": 0  # next-nearest neighbor ..
         })

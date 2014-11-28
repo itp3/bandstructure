@@ -2,55 +2,34 @@ import numpy as np
 import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
 
+from .. import Parameters
+
 
 class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
     implement tunnelingRate (and onSite)."""
 
-    def __init__(self, lattice, params={}):
+    def __init__(self, lattice, params):
         self.lattice = lattice
-        self.params = {}
+
+        self.params = Parameters()
 
         # TODO: get 'default cutoff' from Lattice class
         # self.set("cutoff", lattice.getNearestNeighborCutoff())
-        self.set("cutoff", 1.1)
+        self.params["cutoff"] = 1.1
 
         self.setDefaultParams()
-        self.setParams(params)
+
+        self.params.update(params)
+
+    def get(self, paramName):
+        """Shortcut to a certain parameter"""
+        return self.params.get(paramName)
 
     def setDefaultParams(self):
         """This method can be implemented by child classes to set default system parameters."""
 
         pass
-
-    def setParams(self, newParams):
-        """Sets multiple parameters at once. Parameters which are already set are overwritten."""
-
-        # Standard parameters can be overwriten by new params
-        self.params.update(newParams)
-
-    def set(self, paramName, value):
-        """Set a single parameter"""
-
-        self.params[paramName] = value
-
-    def get(self, paramName, default=None):
-        """Returns a parameter specified by its name. If the parameter does not exist and 'default'
-        is given, the default value is returned."""
-
-        try:
-            return self.params[paramName]
-        except KeyError:
-            if default is not None:
-                return default
-
-            raise Exception("Missing parameter '{}'".format(paramName))
-
-    def showParams(self):
-        """Print a list of all parameters in this system"""
-
-        for name, value in self.params.items():
-            print("{name} = {value}".format(name=name, value=value))
 
     @abstractmethod
     def tunnelingRate(self, dr):
