@@ -2,55 +2,34 @@ import numpy as np
 import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
 
+from .. import Parameters
+
 
 class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
     implement tunnelingRate (and onSite)."""
 
-    def __init__(self, lattice, params={}):
+    def __init__(self, lattice, params):
         self.lattice = lattice
-        self.params = {}
+
+        self.params = Parameters()
 
         # TODO: get 'default cutoff' from Lattice class
         # self.set("cutoff", lattice.getNearestNeighborCutoff())
-        self.set("cutoff", 1.1)
+        self.params["cutoff"] = 1.1
 
         self.setDefaultParams()
-        self.setParams(params)
+
+        self.params.update(params)
+
+    def get(self, paramName):
+        """Shortcut to a certain parameter"""
+        return self.params.get(paramName)
 
     def setDefaultParams(self):
         """This method can be implemented by child classes to set default system parameters."""
 
         pass
-
-    def setParams(self, newParams):
-        """Sets multiple parameters at once. Parameters which are already set are overwritten."""
-
-        # Standard parameters can be overwriten by new params
-        self.params.update(newParams)
-
-    def set(self, paramName, value):
-        """Set a single parameter"""
-
-        self.params[paramName] = value
-
-    def get(self, paramName, default=None):
-        """Returns a parameter specified by its name. If the parameter does not exist and 'default'
-        is given, the default value is returned."""
-
-        try:
-            return self.params[paramName]
-        except KeyError:
-            if default is not None:
-                return default
-
-            raise Exception("Missing parameter '{}'".format(paramName))
-
-    def showParams(self):
-        """Print a list of all parameters in this system"""
-
-        for name, value in self.params.items():
-            print("{name} = {value}".format(name=name, value=value))
 
     @abstractmethod
     def tunnelingRate(self, dr):
@@ -75,17 +54,39 @@ class System(metaclass=ABCMeta):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
 
+        # Get distances according within a certain cutoff radius
         cutoff = self.get("cutoff")
-
         dr = self.lattice.getDistances(cutoff)
 
+        nSublattices = dr.shape[0]
+
+        # Compute the exp(i k r) factor
         expf = np.exp(1j * np.tensordot(kvec, dr, axes=(0, 3)))
 
-        rates = self.tunnelingRate(dr)  # TODO: we don't have to compute this every time
+        # Get the tunneling rates for each displacement vector
+        rates = self.tunnelingRate(dr)  # TODO: we don't have to compute 'rates' every time
+
+        # Check the dimension of 'rates'-tensor
+        rs = rates.shape
+        if len(rs) != 5:
+            raise Exception("tunnelingRate needs to return a 5-tensor")
+        else:
+            nOrbitals = rs[4]
+            # TODO perform more checks, like rs[4]==rs[3]
 
         # TODO: include onsite energies
 
-        return np.sum(expf * rates, 2)
+
+        # print("dr ~ {}, expf ~ {}, rates ~ {}, h ~ {}".format(dr.shape, expf.shape, rates.shape, h.shape))
+
+        # The Hamiltonian is the sum over all positions:
+        h = (expf[:, :, :, None, None] * rates).sum(2)
+
+        # Reshape Hamiltonian
+        dimH = nOrbitals * nSublattices
+        h = h.transpose((0, 2, 1, 3)).reshape((dimH, dimH))
+
+        return h
 
     def solve(self, kvecs, processes=None):
         """Solve the system for a given (set of) vectors in the Brillouin zone. kvecs can be a
@@ -103,7 +104,9 @@ class System(metaclass=ABCMeta):
         """Helper function used by solve"""
 
         # TODO!
-        (energies, _) = np.linalg.eigh(self.getHamiltonian(kvec))
+        h = self.getHamiltonian(kvec)
+        # print(h.shape)
+        (energies, _) = np.linalg.eigh(h)
         return energies
 
     def getFlatness(self, band=None):

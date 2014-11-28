@@ -5,18 +5,8 @@ sys.path.append("../")
 import numpy as np
 
 from bandstructure.system import TightBindingSystem
-from bandstructure.lattice import Lattice
+from bandstructure.lattice import SquareLattice
 from bandstructure.plot import Plot
-
-
-class Chain(Lattice):
-    def getDistances(self, _):
-        return np.array([[[
-            [-2, 0],
-            [-1, 0],
-            [1, 0],
-            [2, 0]
-        ]]])
 
 params = {
     'cutoff': 2.1,
@@ -24,11 +14,10 @@ params = {
     't2': 0
 }
 
-l = Chain(params)
+l = SquareLattice(params)
 s = TightBindingSystem(l, params)
 
 print("Parameters:")
 s.params.showParams()
 
 p = Plot(s)
-p.plotDispersionPath()

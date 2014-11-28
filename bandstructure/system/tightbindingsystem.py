@@ -5,10 +5,21 @@ from .system import System
 
 class TightBindingSystem(System):
     def setDefaultParams(self):
-        self.setParams({'t': 1})
+        self.params.update({
+            "t": 1,  # nearest neighbor tunneling strength
+            "t2": 0  # next-nearest neighbor ..
+        })
 
     def tunnelingRate(self, dr):
-        # TODO: this is cheating, for now. We assume that dr only includes the nearest neighbors
         t = self.get("t")
+        t2 = self.get("t2")
 
-        return -t
+        # Nearest neighbors:
+        nn = np.linalg.norm(dr, axis=3) == 1   # TODO! get the real nearest neighbor distance
+        nnn = np.linalg.norm(dr, axis=3) == 2  # TODO!
+
+        # Orbital matrix
+        m = np.array([[1, 0], [0, -1]])
+        # m = np.array([-t])
+
+        return t * m * nn[:, :, :, None, None] + t2 * m * nnn[:, :, :, None, None]
