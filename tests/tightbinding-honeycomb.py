@@ -8,13 +8,13 @@ from bandstructure.system import TightBindingSystem
 from bandstructure.plot import Plot
 
 lattice = HoneycombLattice()
-lattice.makeFiniteCircle(10)
-#lattice.makeFiniteRectangle(8,10)
+#lattice.makeFiniteCircle(2)
+#lattice.makeFiniteRectangle(8,10,center=[0.5,0])
+#lattice.makeFiniteAlongdirection(latticevector=0, repetitions=5)
 
 system = TightBindingSystem(lattice, {'t': 1})
 #plot = Plot(system)
 #plot.plotDispersion()
-
 
 # === tests ===
 import matplotlib.pyplot as plt
@@ -23,7 +23,6 @@ import numpy as np
 cutoff = 15
 
 # --- distance matrix ---
-
 distances = lattice.getDistances(cutoff)
 
 nSubs = distances.shape[0]
@@ -34,7 +33,6 @@ plt.imshow(distances, aspect='auto',interpolation='nearest')
 plt.show()
 
 # --- positions ---
-
 positions = lattice.getPositions(cutoff)
 
 fig = plt.gcf()
@@ -47,7 +45,6 @@ plt.ylim(-1.3*cutoff,1.3*cutoff)
 plt.show()
 
 # --- geometry ---
-
 geometry = lattice.getGeometry(cutoff)
 
 fig = plt.gcf()
@@ -59,3 +56,6 @@ plt.axes().set_aspect('equal')
 plt.xlim(-1.3*cutoff,1.3*cutoff)
 plt.ylim(-1.3*cutoff,1.3*cutoff)
 plt.show()
+
+
+print(lattice.getNNCutoff())

@@ -1,10 +1,9 @@
 import numpy as np
 
 # TODOs
-# * get nearest neighbor cutoff
-# * docstrings
 # * periodic boundary conditions
 # * generation of k vectors
+# * makeFiniteAlongdirection
 
 
 
@@ -172,15 +171,27 @@ class Lattice():
 
         return positionsAll
 
-    def makeFiniteCircle(self, cutoff):
+    def getNNCutoff(self):
+        """Return the smallest distance that occures in the lattice (nearest neighbor cutoff)."""
+
+        nearpositions = self.getGeometry(0).reshape(-1,2)
+
+        # subtract central position
+        nearpositions -= nearpositions[0]
+
+        # return smallest distance to central position
+        neardistances = np.sqrt(np.sum(nearpositions[1:]**2,axis=-1))
+        return np.min(neardistances)
+
+    def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
 
-        makeFiniteCircle(radius)"""
+        makeFiniteCircle(radius, center=[x,Y])"""
 
-        positionsAll = self.getGeometry(cutoff).reshape(-1,2)
+        positionsAll = self.getGeometry(cutoff+np.linalg.norm(center)).reshape(-1,2)
 
         # masking
-        positionsAllAbs = np.sqrt(np.sum(positionsAll**2,axis=-1))
+        positionsAllAbs = np.sqrt(np.sum((positionsAll-center)**2,axis=-1))
         positionsAllMask = (positionsAllAbs > cutoff)
         positionsAll = positionsAll[~positionsAllMask]
 
@@ -189,16 +200,16 @@ class Lattice():
         self.__latticevectorsReciprocal = np.array([])
         self.__basisvectors = positionsAll
 
-    def makeFiniteRectangle(self, cutoffX, cutoffY):
+    def makeFiniteRectangle(self, cutoffX, cutoffY, center=[0,0]):
         """Generate a finite rectangular lattice.
 
-        makeFiniteCircle(2*width,2*height)"""
+        makeFiniteCircle(2*width,2*height, center=[x,Y])"""
 
-        positionsAll = self.getGeometry(np.sqrt(2)*max(cutoffX,cutoffY)).reshape(-1,2)
+        positionsAll = self.getGeometry(np.sqrt(2)*max(cutoffX,cutoffY)+np.linalg.norm(center)).reshape(-1,2)
 
         # masking
-        positionsAllMask = (np.abs(positionsAll[:,0]) > cutoffX) | \
-            (np.abs(positionsAll[:,1]) > cutoffY)
+        positionsAllMask = (np.abs(positionsAll[:,0]-center[0]) > cutoffX) | \
+            (np.abs(positionsAll[:,1]-center[1]) > cutoffY)
         positionsAll = positionsAll[~positionsAllMask]
 
         # save the finite system as basisvectors
