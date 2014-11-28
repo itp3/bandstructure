@@ -1,18 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Plot:
     def __init__(self, system):
         self.system = system
 
-    def plotDispersion(self):
-        """Plot the dispersion relation of the bands"""
+    def plotDispersionPath(self):
+        """Plot the dispersion relation of the bands along a path in the Brillouin zone."""
 
-        # TODO: this just works for 1D at the moment
-        kvecs = np.linspace(-np.pi, np.pi, 100)
-        kvecs = list(map(lambda x: [x, 0], kvecs))
-        energies = self.system.solve(kvecs)
-        energies = list(map(lambda v: v[0], energies))
+        # TODO: this is just a hack for 1D right now
+        kvals = np.linspace(-np.pi, np.pi, 600)
+        kvecs = list(map(lambda x: [x, 0], kvals))
+        energies = np.array(self.system.solve(kvecs))
 
-        plt.plot(kvecs, energies)
-        plt.savefig('dispersion.png')
+        plt.plot(kvals, energies)
+        plt.savefig('dispersion.pdf')
+
+    def plotDispersion2D(self):
+        """Plot the dispersion relation of a 2D system over the full Brillouin zone."""
+
+        pass

@@ -75,17 +75,39 @@ class System(metaclass=ABCMeta):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
 
+        # Get distances according within a certain cutoff radius
         cutoff = self.get("cutoff")
-
         dr = self.lattice.getDistances(cutoff)
 
+        nSublattices = dr.shape[0]
+
+        # Compute the exp(i k r) factor
         expf = np.exp(1j * np.tensordot(kvec, dr, axes=(0, 3)))
 
-        rates = self.tunnelingRate(dr)  # TODO: we don't have to compute this every time
+        # Get the tunneling rates for each displacement vector
+        rates = self.tunnelingRate(dr)  # TODO: we don't have to compute 'rates' every time
+
+        # Check the dimension of 'rates'-tensor
+        rs = rates.shape
+        if len(rs) != 5:
+            raise Exception("tunnelingRate needs to return a 5-tensor")
+        else:
+            nOrbitals = rs[4]
+            # TODO perform more checks, like rs[4]==rs[3]
 
         # TODO: include onsite energies
 
-        return np.sum(expf * rates, 2)
+
+        # print("dr ~ {}, expf ~ {}, rates ~ {}, h ~ {}".format(dr.shape, expf.shape, rates.shape, h.shape))
+
+        # The Hamiltonian is the sum over all positions:
+        h = (expf[:, :, :, None, None] * rates).sum(2)
+
+        # Reshape Hamiltonian
+        dimH = nOrbitals * nSublattices
+        h = h.transpose((0, 2, 1, 3)).reshape((dimH, dimH))
+
+        return h
 
     def solve(self, kvecs, processes=None):
         """Solve the system for a given (set of) vectors in the Brillouin zone. kvecs can be a
@@ -103,7 +125,9 @@ class System(metaclass=ABCMeta):
         """Helper function used by solve"""
 
         # TODO!
-        (energies, _) = np.linalg.eigh(self.getHamiltonian(kvec))
+        h = self.getHamiltonian(kvec)
+        # print(h.shape)
+        (energies, _) = np.linalg.eigh(h)
         return energies
 
     def getFlatness(self, band=None):
