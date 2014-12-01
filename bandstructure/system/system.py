@@ -10,6 +10,7 @@ class System(metaclass=ABCMeta):
     def __init__(self, lattice, params):
         self.distances = None
         self.rates = None
+        self.dimH = None
 
         self.lattice = lattice
 
@@ -66,6 +67,11 @@ class System(metaclass=ABCMeta):
 
         # TODO: include onsite energies
 
+        nSublattices = self.distances.shape[0]
+        nOrbitals = self.rates.shape[4]
+
+        self.dimH = nOrbitals * nSublattices
+
     def getHamiltonian(self, kvec):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
@@ -74,17 +80,13 @@ class System(metaclass=ABCMeta):
             raise Exception("The system needs to be initialized before doing any calculations.")
 
         # Compute the exp(i r k) factor
-        expf = np.exp(1j * np.dot(self.distances, kvec))
+        expf = np.exp(1j * np.ma.dot(self.distances, kvec, strict=True))
 
         # The Hamiltonian is given by the sum over all positions:
         h = (expf[:, :, :, None, None] * self.rates).sum(2)
 
         # Reshape Hamiltonian
-        nSublattices = self.distances.shape[0]
-        nOrbitals = self.rates.shape[4]
-
-        dimH = nOrbitals * nSublattices
-        h = h.transpose((0, 2, 1, 3)).reshape((dimH, dimH))
+        h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))
 
         return h
 
@@ -94,23 +96,37 @@ class System(metaclass=ABCMeta):
         parallel computing can be specified. If processes is set to None, all available CPUs
         will be used."""
 
-        if type(kvecs) is list:
+        if isinstance(kvecs, np.ndarray):
+            # Reshape the (possibly 2D array) of vectors to a one-dimensional list
+            kvecsR = kvecs.reshape((-1, 2))
+
             if processes == 1:
-                # We use a straight map in the single-process case to allow for simple profiling
-                return list(map(self.solveSingle, kvecs))
+                # Use a straight map in the single-process case to allow for cleaner profiling
+                energies = list(map(self.solveSingle, kvecsR))
             else:
                 pool = mp.Pool(processes)
-                return pool.map(workerSolveSingle, zip([self] * len(kvecs), kvecs))
+                energies = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
+
+            # Wrap back to a masked array
+            energies = np.ma.array(energies)
+
+            # Reshape energies to the original form given by kvecs
+            return energies.reshape(kvecs.shape[:-1] + (energies.shape[-1],))
         else:
             return self.solveSingle(kvecs)
 
     def solveSingle(self, kvec):
         """Helper function used by solve"""
 
-        # TODO!
+        if kvec.mask[0]:
+            # This kvector is masked (is outside of the first Brillouin zone).
+            # We return a masked vector of the correct size.
+            return np.ma.array(self.dimH * [0], mask=self.dimH * [True])
+
+        # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)
-        # print(h.shape)
         (energies, _) = np.linalg.eigh(h)
+
         return energies
 
     def getFlatness(self, band=None):
