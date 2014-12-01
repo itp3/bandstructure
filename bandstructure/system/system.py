@@ -118,7 +118,7 @@ class System(metaclass=ABCMeta):
     def solveSingle(self, kvec):
         """Helper function used by solve"""
 
-        if kvec.mask[0]:
+        if hasattr(kvec, 'mask') and kvec.mask[0]:
             # This kvector is masked (is outside of the first Brillouin zone).
             # We return a masked vector of the correct size.
             return np.ma.array(self.dimH * [0], mask=self.dimH * [True])
