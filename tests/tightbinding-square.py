@@ -2,7 +2,6 @@
 
 import sys
 sys.path.append("../")
-import numpy as np
 
 from bandstructure import Parameters
 from bandstructure.system import TightBindingSystem
@@ -16,10 +15,14 @@ params = Parameters({
 })
 
 l = SquareLattice(params)
+# l.makeFiniteAlongdirection(1, 20)
+# l.makeFiniteAlongdirection(0, 20)
+
 s = TightBindingSystem(l, params)
 
-print("Parameters:")
-s.params.showParams()
+# print("Parameters:")
+# s.params.showParams()
 
 p = Plot(s)
-p.plotDispersionPath()
+#p.plotDispersionPath()
+p.plotDispersion(resolution=100)

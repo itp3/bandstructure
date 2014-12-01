@@ -134,7 +134,7 @@ class Lattice():
     def getKvectorsPath(self, resolution, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
 
-        kvectors = getKvectorsPath(resolution, points=[[0,0],[0,1]])
+        kvectors, length = getKvectorsPath(resolution, points=[[0,0],[0,1]])
         kvectors[idxPosition, idxCoordinate]"""
 
         if points == None:
