@@ -22,7 +22,7 @@ class Distances(np.ma.MaskedArray):
             self.flags.writeable = False
         return self.__differentdistances
 
-    def getNNCutoff(self,layer = 1):
+    def getNeighborsCutoff(self,layer = 1):
         """Return the smallest distance that occures in the lattice (if layer = 1) or
         the next smallest distance (if layer = 2).
 
@@ -30,12 +30,11 @@ class Distances(np.ma.MaskedArray):
 
         return self.differentdistances[layer-1]
 
-    def getNN(self,layer = 1):
+    def getNeighbors(self,layer = 1):
         """Return a matrix of nearest neighbor distances (if layer = 1) or
         of next nearest neighbor distances (if layer = 2).
 
-        matrices = getNNs(layer)
-        isNN = ~matrices.mask[:,:,:,0]"""
+        matrices = getNNs(layer)"""
 
         if layer == 1:
             c = self.differentdistances[layer-1]
@@ -46,3 +45,9 @@ class Distances(np.ma.MaskedArray):
 
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
         return Distances(self, mask = matDeltaRMask)
+
+    def getNeighborsMask(self,layer = 1):
+        """Returns a boolean array with the corresponding layer of neighbors
+        set to true."""
+
+        return ~self.getNeighbors(layer).mask[:, :, :, 0]
