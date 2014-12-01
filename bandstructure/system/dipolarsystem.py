@@ -16,4 +16,4 @@ class DipolarSystem(System):
         # m = np.array([[1, 0], [0, -1]])
         m = np.array([-t])
 
-        return t * m * dist3[:, :, :, None, None]
+        return m * dist3[:, :, :, None, None]
