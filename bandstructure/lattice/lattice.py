@@ -1,16 +1,17 @@
 import numpy as np
 import itertools
 from scipy.ndimage import binary_dilation
-
-# TODOs
-# * periodic boundary conditions
-# * makeFiniteAlongdirection
+from ..distances import Distances
 
 class Lattice():
+    """Class to generate the lattice."""
+
     __params = None
     __vecsReciprocal = np.array([])
     __posBrillouinZone = np.array([])
     __posBrillouinPath = np.array([])
+
+    __tol = 1e-16
 
     def __init__(self, params):
         self.__params = params
@@ -180,6 +181,15 @@ class Lattice():
         else:
             safetyregion = 0
 
+
+        numSubs = self.__params['vecsBasis'].shape[0]
+        pos = np.tile(self.__params['vecsBasis'], (numSubs,1,1))
+        pos -= pos.T
+        maxDist = np.max(np.sqrt(np.sum(pos**2,axis=-1)))
+        #print(maxDist)
+        safetyregion = maxDist
+
+
         # array that will contain all positions
         positions = []
 
@@ -199,6 +209,10 @@ class Lattice():
 
                 # change looping direction / break if the shift is larger than a cutoff
                 if np.linalg.norm(shiftedpos1) > cutoff+safetyregion:
+                    '''if np.all(np.min([\
+                    np.sqrt(np.sum((self.__params['vecsBasis']-shiftedpos1)**2,axis=-1)),\
+                    np.sqrt(np.sum((self.__params['vecsBasis']+shiftedpos1)**2,axis=-1))\
+                    ],axis=0)> cutoff):'''
                     if shiftidx1 > 0:
                         shiftidx1 = -1
                         continue
@@ -223,6 +237,10 @@ class Lattice():
 
                     # change looping direction / break if the sum of shifts is larger than a cutoff
                     if np.linalg.norm(shiftedpos) > cutoff+safetyregion:
+                        '''if np.all(np.min([\
+                        np.sqrt(np.sum((self.__params['vecsBasis']-shiftedpos)**2,axis=-1)),\
+                        np.sqrt(np.sum((self.__params['vecsBasis']+shiftedpos)**2,axis=-1))\
+                        ],axis=0)> cutoff):'''
                         if shiftidx0 > 0:
                             shiftidx0 = -1
                             continue
@@ -252,17 +270,8 @@ class Lattice():
 
         return positionsAll
 
-    def getNNCutoff(self):
-        """Return the smallest distance that occures in the lattice (nearest neighbor cutoff)."""
-
-        nearpositions = self.getGeometry(np.max(np.sqrt(np.sum(self.__params['vecsLattice']**2,axis=-1)))).reshape(-1,2)
-
-        # subtract central position
-        nearpositions -= nearpositions[0]
-
-        # return smallest distance to central position
-        neardistances = np.sqrt(np.sum(nearpositions[1:]**2,axis=-1))
-        return np.min(neardistances)
+    def getVecsBasis(self):
+        return self.__params['vecsBasis']
 
     def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
@@ -314,7 +323,7 @@ class Lattice():
         self.__params['vecsBasis'] = positionsAll
 
 
-        # === calculate the reciprocal vectors === #TODO Put it in a function & Safetyregion is not big enough if there are so many basis vectors --> safetyregion should be basis vector dependent
+        # === calculate the reciprocal vectors === #TODO Put it in a function
         if self.__params['vecsLattice'].shape[0] == 0:
             self.__vecsReciprocal = np.array([[0,0]])
         elif self.__params['vecsLattice'].shape[0] == 1:
@@ -367,9 +376,8 @@ class Lattice():
 
         # masking of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matDeltaRAbs = np.sqrt(np.sum(matDeltaR**2,axis=-1))
-        matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < 1e-32) | \
+        matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol) | \
             ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None]
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
-        matDeltaR = np.ma.array(matDeltaR, mask = matDeltaRMask)
 
-        return matDeltaR
+        return Distances(matDeltaR, mask = matDeltaRMask)
