@@ -12,8 +12,8 @@ params = Parameters()
 lattice = HoneycombLattice(params)
 #lattice.makeFiniteCircle(2)
 #lattice.makeFiniteRectangle(8,10,center=[0.5,0])
-#lattice.makeFiniteAlongdirection(1, 30)
-#lattice.makeFiniteAlongdirection(0, 30)
+#lattice.makeFiniteAlongdirection(1, 4)
+#lattice.makeFiniteAlongdirection(0, 5)
 
 
 system = TightBindingSystem(lattice, {'t': 1})

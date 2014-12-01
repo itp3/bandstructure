@@ -176,19 +176,10 @@ class Lattice():
         positions[idxPosition, idxCoordinate]"""
 
         # value that is added to the cutoff to be on the save side
-        if self.__params['vecsLattice'].shape[0] > 0:
-            safetyregion = 1*np.max(np.sqrt(np.sum(self.__params['vecsLattice']**2,axis=-1)))
-        else:
-            safetyregion = 0
-
-
         numSubs = self.__params['vecsBasis'].shape[0]
         pos = np.tile(self.__params['vecsBasis'], (numSubs,1,1))
-        pos -= pos.T
-        maxDist = np.max(np.sqrt(np.sum(pos**2,axis=-1)))
-        #print(maxDist)
-        safetyregion = maxDist
-
+        pos -= pos.transpose(1,0,2)
+        safetyregion = np.max(np.sqrt(np.sum(pos**2,axis=-1)))
 
         # array that will contain all positions
         positions = []
