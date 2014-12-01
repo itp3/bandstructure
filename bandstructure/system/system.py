@@ -10,6 +10,7 @@ class System(metaclass=ABCMeta):
     def __init__(self, lattice, params):
         self.distances = None
         self.rates = None
+        self.diag = None
         self.dimH = None
 
         self.lattice = lattice
@@ -41,11 +42,11 @@ class System(metaclass=ABCMeta):
 
         raise NotImplementedError("This method has to be implemented by a child class")
 
-    def onSite(self, orb):
-        """Returns the energy offset of the given site. If no onsite energy is specified,
-        it is assumed to be zero."""
+    def onSite(self):
+        """Returns the onsite Hamiltonian which can include a chemical potential in the form
+        of a diagonal matrix."""
 
-        return 0
+        return None
 
     def initialize(self):
         """This needs to be run before doing any calculations on the lattice. The
@@ -65,7 +66,7 @@ class System(metaclass=ABCMeta):
 
         # TODO perform more checks, like: rs[4]==rs[3] ?
 
-        # TODO: include onsite energies
+        self.diag = self.onSite()
 
         nSublattices = self.distances.shape[0]
         nOrbitals = self.rates.shape[4]
@@ -76,7 +77,7 @@ class System(metaclass=ABCMeta):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
 
-        if self.distances is None or self.rates is None:
+        if self.distances is None:
             raise Exception("The system needs to be initialized before doing any calculations.")
 
         # Compute the exp(i r k) factor
@@ -87,6 +88,10 @@ class System(metaclass=ABCMeta):
 
         # Reshape Hamiltonian
         h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))
+
+        # TODO: properly handle onsite energies
+        if self.diag is not None:
+            h += self.diag
 
         return h
 
