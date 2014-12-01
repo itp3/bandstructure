@@ -2,7 +2,6 @@
 
 import sys
 sys.path.append("../")
-import numpy as np
 
 from bandstructure import Parameters
 from bandstructure.system import DipolarSystem
@@ -10,7 +9,7 @@ from bandstructure.lattice import SquareLattice
 from bandstructure.plot import Plot
 
 params = Parameters({
-    'cutoff': 40.1,
+    'cutoff': 300.1,
     't': 1,
 })
 
@@ -22,3 +21,7 @@ s.params.showParams()
 
 p = Plot(s)
 p.plotDispersionPath()
+
+# params["cutoff"] = 800
+# s.initialize()
+# print(s.solve([[0, 0]]))

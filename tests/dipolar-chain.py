@@ -11,7 +11,7 @@ from bandstructure.plot import Plot
 
 
 params = Parameters({
-    'cutoff': 16.1,
+    'cutoff': 20.1,
     't': 1
 })
 
