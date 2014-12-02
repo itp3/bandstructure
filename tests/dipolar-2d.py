@@ -8,12 +8,17 @@ from bandstructure import Parameters
 from bandstructure.system import DipolarSystem
 from bandstructure.lattice import SquareLattice, HoneycombLattice
 
-# l = SquareLattice()
+# === lattice ===
+l = SquareLattice()
 l = HoneycombLattice()
+#l.makeFiniteAlongdirection(0,20)
+l.plot(filename="",show=True,cutoff=5)
 
+
+# === system ===
 params = Parameters({
     'lattice': l,
-    'cutoff': 10,
+    'cutoff': 30,
     'tbar': 1,
     'mu': -4.54,
     't': 0.54,
@@ -22,12 +27,12 @@ params = Parameters({
 
 s = DipolarSystem(params)
 
+# === bandstructure ===
 k = [0, 4/(np.sqrt(3)*3) * np.pi]
 gam = [0, 0]
-path, length = l.getKvectorsPath(300, points=[k, gam, k])
-bs = s.solve(path)
 
-# bz = l.getKvectorsZone(30)
-# bs = s.solve(bz)
+kvecs = l.getKvectorsPath(100, points=[k, gam, k])
+#kvecs = l.getKvectorsZone(30, points=[k, gam, k])
 
-bs.plot()
+b = s.solve(kvecs)
+b.plot(filename="",show=True)

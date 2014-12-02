@@ -154,11 +154,7 @@ class Lattice():
             else: positions[n-1] = newpos
         positions = np.vstack(positions)
 
-        # length of the path
-        length = np.cumsum(np.sqrt(np.sum(np.append([[0,0]],\
-            np.diff(positions,axis=0),axis=0)**2,axis=1)))
-
-        return positions, length
+        return positions
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.
@@ -322,6 +318,26 @@ class Lattice():
             return vecs
         else:
             raise Exception("Lattices with more than 2 lattice vectors are not supported")
+
+    def plot(self, filename="",show=True,cutoff=10):
+        """Plot the lattice."""
+
+        import matplotlib.pyplot as plt
+
+        fig = plt.gcf()
+
+        for p,b in zip(self.getGeometry(cutoff),self.__vecsBasis):
+            line, = plt.plot(p[:,0],p[:,1], 'o',ms=4)
+            fig.gca().add_artist(plt.Circle(b,cutoff, fill = False ,\
+                ec=line.get_color(),alpha=0.5,lw=1))
+            plt.plot(b[0],b[1], 'kx',ms=7,mew=1)
+        plt.axes().set_aspect('equal')
+        plt.xlim(-1.5*cutoff,1.5*cutoff)
+        plt.ylim(-1.5*cutoff,1.5*cutoff)
+
+        if not filename == "": plt.savefig(filename)
+        if show: plt.show()
+
 
     def getDistances(self, cutoff):
         """Create a matrix that contains all distances from the central position of a

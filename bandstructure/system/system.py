@@ -87,8 +87,8 @@ class System(metaclass=ABCMeta):
         h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))
 
         # TODO: properly handle onsite energies
-        if self.diag is not None:
-            h += self.diag
+        '''if self.diag is not None:
+            h += self.diag'''
 
         return h
 

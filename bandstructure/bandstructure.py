@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
 
 class Bandstructure:
     def __init__(self, params, kvecs, energies, states):
@@ -28,14 +26,20 @@ class Bandstructure:
 
         pass
 
-    def plot(self, filename="dispersion.pdf", resolution=50, processes=None):
+    def plot(self, filename="",show=True, processes=None):
         """Plot the band structure."""
+
+        import matplotlib.pyplot as plt
 
         # Fill with NaN for 2D plotting
         energies = self.energies.filled(np.nan)
 
         if self.kSpaceDimension() == 1:
-            plt.plot(energies)
+            # length of the path
+            length = np.cumsum(np.sqrt(np.sum(np.append([[0,0]],\
+                np.diff(self.kvecs,axis=0),axis=0)**2,axis=1)))
+
+            plt.plot(length,energies)
         else:
             from mpl_toolkits.mplot3d import Axes3D
             from matplotlib import cm
@@ -53,4 +57,5 @@ class Bandstructure:
                                 antialiased=False
                                 )
 
-        plt.savefig(filename)
+        if not filename == "": plt.savefig(filename)
+        if show: plt.show()
