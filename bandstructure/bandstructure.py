@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 class Bandstructure:
     def __init__(self, params, kvecs, energies, states):
-        self.params = kvecs
+        self.params = params
         self.kvecs = kvecs
         self.energies = energies
         self.states = states
@@ -53,4 +53,5 @@ class Bandstructure:
                                 antialiased=False
                                 )
 
+        filename = filename.format(**self.params)
         plt.savefig(filename)
