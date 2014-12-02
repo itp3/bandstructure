@@ -14,7 +14,7 @@ class Plot:
 
         self.system.initialize()
 
-        kvecs, length = self.system.lattice.getKvectorsPath(resolution, points)
+        kvecs, length = self.system.get("lattice").getKvectorsPath(resolution, points)
         energies = np.array(self.system.solve(kvecs, processes))
 
         plt.plot(length, energies)
@@ -25,8 +25,10 @@ class Plot:
 
         self.system.initialize()
 
-        kvecs = self.system.lattice.getKvectorsZone(resolution)
+        kvecs = self.system.get("lattice").getKvectorsZone(resolution)
         energies = self.system.solve(kvecs, processes)
+
+        energies = energies.filled(np.nan)
 
         from mpl_toolkits.mplot3d import Axes3D
         from matplotlib import cm

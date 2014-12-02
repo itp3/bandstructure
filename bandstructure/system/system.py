@@ -7,13 +7,11 @@ class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
     implement tunnelingRate (and onSite)."""
 
-    def __init__(self, lattice, params):
+    def __init__(self, params):
         self.distances = None
         self.rates = None
         self.diag = None
         self.dimH = None
-
-        self.lattice = lattice
 
         self.params = params
 
@@ -54,7 +52,7 @@ class System(metaclass=ABCMeta):
 
         # Get distances within a certain cutoff radius
         cutoff = self.get("cutoff")
-        self.distances = self.lattice.getDistances(cutoff)
+        self.distances = self.get("lattice").getDistances(cutoff)
 
         # Get the tunneling rates for each displacement vector
         self.rates = self.tunnelingRate(self.distances)
@@ -133,17 +131,6 @@ class System(metaclass=ABCMeta):
         (energies, _) = np.linalg.eigh(h)
 
         return energies
-
-    def getFlatness(self, band=None):
-        """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specific band
-        index is given."""
-
-        pass
-
-    def getChernNumbers(self, band=None):
-        """Returns the Chern numbers for all bands, unless a specific band index is given."""
-
-        pass
 
 
 def workerSolveSingle(args):

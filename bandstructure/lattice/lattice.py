@@ -6,17 +6,15 @@ from ..distances import Distances
 class Lattice():
     """Class to generate the lattice."""
 
-    __params = None
+    __vecsLattice = np.array([])
+    __vecsBasis = np.array([])
     __vecsReciprocal = np.array([])
     __posBrillouinZone = np.array([])
     __posBrillouinPath = np.array([])
 
     __tol = 1e-16
 
-    def __init__(self, params):
-        self.__params = params
-        self.__params['vecsLattice'] = np.array([])
-        self.__params['vecsBasis'] = np.array([])
+    def __init__(self):
         self.initialize()
 
     def initialize(self):
@@ -32,29 +30,16 @@ class Lattice():
             raise Exception("Lattice vectors have to be 2D vectors.")
 
         # append vector to the array of lattice vectors
-        if self.__params['vecsLattice'].shape[0] == 0:
-            self.__params['vecsLattice'] = np.array([vector])
+        if self.__vecsLattice.shape[0] == 0:
+            self.__vecsLattice = np.array([vector])
         else:
-            self.__params['vecsLattice'] = np.append(self.__params['vecsLattice'],[vector], axis=0)
+            self.__vecsLattice = np.append(self.__vecsLattice,[vector], axis=0)
 
         # validation of lattice vector number
-        if self.__params['vecsLattice'].shape[0] > 2:
+        if self.__vecsLattice.shape[0] > 2:
             raise Exception("There must be at most 2 lattice vectors.")
 
-        # === calculate the reciprocal vectors ===
-        if self.__params['vecsLattice'].shape[0] == 1:
-            self.__vecsReciprocal = np.array([
-                2*np.pi*self.__params['vecsLattice'][0]/np.linalg.norm(self.__params['vecsLattice'][0])**2
-                ])
-        else:
-            self.__vecsReciprocal = np.array([
-                np.dot(np.array([[0,1],[-1,0]]),self.__params['vecsLattice'][1]),
-                np.dot(np.array([[0,-1],[1,0]]),self.__params['vecsLattice'][0])
-                ])
-            self.__vecsReciprocal[0] = 2*np.pi*self.__vecsReciprocal[0]/\
-                (np.vdot(self.__params['vecsLattice'][0], self.__vecsReciprocal[0]))
-            self.__vecsReciprocal[1] = 2*np.pi*self.__vecsReciprocal[1]/\
-                (np.vdot(self.__params['vecsLattice'][1], self.__vecsReciprocal[1]))
+        self.__vecsReciprocal = self.getReciprocalVectors()
 
     def addBasisvector(self,vector):
         """Add a basis vector."""
@@ -66,10 +51,10 @@ class Lattice():
             raise Exception("Basis vectors have to be 2D vectors.")
 
         # append vector to the array of lattice vectors
-        if self.__params['vecsBasis'].shape[0] == 0:
-            self.__params['vecsBasis'] = np.array([vector])
+        if self.__vecsBasis.shape[0] == 0:
+            self.__vecsBasis = np.array([vector])
         else:
-            self.__params['vecsBasis'] = np.append(self.__params['vecsBasis'],[vector], axis=0)
+            self.__vecsBasis = np.append(self.__vecsBasis,[vector], axis=0)
 
     def _calcCircumcenter(vectorB, vectorC):
         """See http://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates."""
@@ -79,7 +64,7 @@ class Lattice():
         y = (vectorB[0]*np.vdot(vectorC,vectorC)-vectorC[0]*np.vdot(vectorB,vectorB))/D
         return np.array([x,y])
 
-    def getKvectorsZone(self, resolution, dilation = True):
+    def getKvectorsZone(self, resolution, dilation = False):
         """Calculate a matrix that contains all the kvectors of the Brillouin zone.
 
         kvectors = getKvectorsZone(resolution, dilation = True)
@@ -176,8 +161,8 @@ class Lattice():
         positions[idxPosition, idxCoordinate]"""
 
         # value that is added to the cutoff to be on the save side
-        numSubs = self.__params['vecsBasis'].shape[0]
-        pos = np.tile(self.__params['vecsBasis'], (numSubs,1,1))
+        numSubs = self.__vecsBasis.shape[0]
+        pos = np.tile(self.__vecsBasis, (numSubs,1,1))
         pos -= pos.transpose(1,0,2)
         safetyregion = np.max(np.sqrt(np.sum(pos**2,axis=-1)))
 
@@ -188,22 +173,18 @@ class Lattice():
         shiftidx1 = 0
         boolLoop1 = True
         while boolLoop1:
-            if self.__params['vecsLattice'].shape[0] >= 2:
-                shiftedpos1 = shiftidx1*self.__params['vecsLattice'][1]
+            if self.__vecsLattice.shape[0] >= 2:
+                shiftedpos1 = shiftidx1*self.__vecsLattice[1]
 
                 # substract the other lattice vector to be as central as possible inside the cutoff region
-                shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__params['vecsLattice'][0])/\
-                    np.linalg.norm(self.__params['vecsLattice'][0])**2 )*self.__params['vecsLattice'][0]
+                shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__vecsLattice[0])/\
+                    np.linalg.norm(self.__vecsLattice[0])**2 )*self.__vecsLattice[0]
 
                 if shiftidx1 < 0: shiftidx1 -= 1
                 else: shiftidx1 += 1
 
                 # change looping direction / break if the shift is larger than a cutoff
                 if np.linalg.norm(shiftedpos1) > cutoff+safetyregion:
-                    '''if np.all(np.min([\
-                    np.sqrt(np.sum((self.__params['vecsBasis']-shiftedpos1)**2,axis=-1)),\
-                    np.sqrt(np.sum((self.__params['vecsBasis']+shiftedpos1)**2,axis=-1))\
-                    ],axis=0)> cutoff):'''
                     if shiftidx1 > 0:
                         shiftidx1 = -1
                         continue
@@ -217,8 +198,8 @@ class Lattice():
             shiftidx0 = 0
             boolLoop0 = True
             while boolLoop0:
-                if self.__params['vecsLattice'].shape[0] >= 1:
-                    shiftedpos0 = shiftidx0*self.__params['vecsLattice'][0]
+                if self.__vecsLattice.shape[0] >= 1:
+                    shiftedpos0 = shiftidx0*self.__vecsLattice[0]
 
                     # add together all shifts
                     shiftedpos = shiftedpos1+shiftedpos0
@@ -228,10 +209,6 @@ class Lattice():
 
                     # change looping direction / break if the sum of shifts is larger than a cutoff
                     if np.linalg.norm(shiftedpos) > cutoff+safetyregion:
-                        '''if np.all(np.min([\
-                        np.sqrt(np.sum((self.__params['vecsBasis']-shiftedpos)**2,axis=-1)),\
-                        np.sqrt(np.sum((self.__params['vecsBasis']+shiftedpos)**2,axis=-1))\
-                        ],axis=0)> cutoff):'''
                         if shiftidx0 > 0:
                             shiftidx0 = -1
                             continue
@@ -253,16 +230,16 @@ class Lattice():
         geometry[idxSublattice, idxPosition, idxCoordinate]"""
 
         # number of sublattices
-        numSubs = self.__params['vecsBasis'].shape[0]
+        numSubs = self.__vecsBasis.shape[0]
 
         # === creation of all positions ===
         positions = self.getPositions(cutoff)
-        positionsAll = np.tile(positions, (numSubs,1,1)) + self.__params['vecsBasis'][:,None]
+        positionsAll = np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]
 
         return positionsAll
 
     def getVecsBasis(self):
-        return self.__params['vecsBasis']
+        return self.__vecsBasis
 
     def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
@@ -277,9 +254,9 @@ class Lattice():
         positionsAll = positionsAll[~positionsAllMask]
 
         # save the finite system as basisvectors
-        self.__params['vecsLattice'] = np.array([])
+        self.__vecsLattice = np.array([])
         self.__vecsReciprocal = np.array([])
-        self.__params['vecsBasis'] = positionsAll
+        self.__vecsBasis = positionsAll
 
     def makeFiniteRectangle(self, cutoffX, cutoffY, center=[0,0]):
         """Generate a finite rectangular lattice.
@@ -294,42 +271,51 @@ class Lattice():
         positionsAll = positionsAll[~positionsAllMask]
 
         # save the finite system as basisvectors
-        self.__params['vecsLattice'] = np.array([])
+        self.__vecsLattice = np.array([])
         self.__vecsReciprocal = np.array([])
-        self.__params['vecsBasis'] = positionsAll
+        self.__vecsBasis = positionsAll
 
     def makeFiniteAlongdirection(self,idxVecLattice, repetitions):
         # number of sublattices
-        numSubs = self.__params['vecsBasis'].shape[0]
+        numSubs = self.__vecsBasis.shape[0]
 
         # === creation of all positions ===
-        positions = np.arange(repetitions)[:,None]*self.__params['vecsLattice'][idxVecLattice][None,:]
-        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__params['vecsBasis'][:,None]).reshape(-1,2)
+        positions = np.arange(repetitions)[:,None]*self.__vecsLattice[idxVecLattice][None,:]
+        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
 
         # save the "more finite" system
-        boolarr = np.ones(self.__params['vecsLattice'].shape[0],dtype=bool)
+        boolarr = np.ones(self.__vecsLattice.shape[0],dtype=bool)
         boolarr[idxVecLattice] = False
 
-        self.__params['vecsLattice'] = self.__params['vecsLattice'][boolarr]
-        self.__params['vecsBasis'] = positionsAll
+        self.__vecsLattice = self.__vecsLattice[boolarr]
+        self.__vecsBasis = positionsAll
 
+        self.__vecsReciprocal = self.getReciprocalVectors()
 
-        # === calculate the reciprocal vectors === #TODO Put it in a function
-        if self.__params['vecsLattice'].shape[0] == 0:
-            self.__vecsReciprocal = np.array([[0,0]])
-        elif self.__params['vecsLattice'].shape[0] == 1:
-            self.__vecsReciprocal = np.array([
-                2*np.pi*self.__params['vecsLattice'][0]/np.linalg.norm(self.__params['vecsLattice'][0])**2
+    def getDimensionality(self):
+        return self.__vecsLattice.shape[0]
+
+    def getReciprocalVectors(self):
+        """Returns the reciprocal lattice vectors (and saves them internally)."""
+
+        dim = self.getDimensionality()
+
+        if dim == 0:
+            return np.array([[0,0]])
+        elif dim == 1:
+            return np.array([
+                2*np.pi*self.__vecsLattice[0]/np.linalg.norm(self.__vecsLattice[0])**2
                 ])
+        elif dim == 2:
+            vecs = np.array([
+                np.dot(np.array([[0,1],[-1,0]]),self.__vecsLattice[1]),
+                np.dot(np.array([[0,-1],[1,0]]),self.__vecsLattice[0])
+                ])
+            vecs[0] = 2*np.pi*vecs[0]/ (np.vdot(self.__vecsLattice[0], vecs[0]))
+            vecs[1] = 2*np.pi*vecs[1]/ (np.vdot(self.__vecsLattice[1], vecs[1]))
+            return vecs
         else:
-            self.__vecsReciprocal = np.array([
-                np.dot(np.array([[0,1],[-1,0]]),self.__params['vecsLattice'][1]),
-                np.dot(np.array([[0,-1],[1,0]]),self.__params['vecsLattice'][0])
-                ])
-            self.__vecsReciprocal[0] = 2*np.pi*self.__vecsReciprocal[0]/\
-                (np.vdot(self.__params['vecsLattice'][0], self.__vecsReciprocal[0]))
-            self.__vecsReciprocal[1] = 2*np.pi*self.__vecsReciprocal[1]/\
-                (np.vdot(self.__params['vecsLattice'][1], self.__vecsReciprocal[1]))
+            raise Exception("Lattices with more than 2 lattice vectors are not supported")
 
     def getDistances(self, cutoff):
         """Create a matrix that contains all distances from the central position of a
@@ -344,7 +330,7 @@ class Lattice():
         positions = positions[sorter]
 
         # shifts given by the basisvectors
-        shifts = self.__params['vecsBasis']
+        shifts = self.__vecsBasis
 
         # === numbers ===
         # maximal number of links between the central position of a sublattice and all positions of another one
@@ -372,3 +358,6 @@ class Lattice():
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
 
         return Distances(matDeltaR, mask = matDeltaRMask)
+
+    def __str__(self):
+        return str({'vecsLattice': self.__vecsLattice, 'vecsBasis': self.__vecsBasis})

@@ -11,13 +11,13 @@ from bandstructure.plot import Plot
 
 
 params = Parameters({
+    'lattice': RegularChain(),
     'cutoff': 10.1,
     't': 1,
     't2': 1
 })
 
-l = RegularChain(params)
-s = TightBindingSystem(l, params)
+s = TightBindingSystem(params)
 
 print("Parameters:")
 s.params.showParams()
