@@ -117,12 +117,14 @@ class System(metaclass=ABCMeta):
         # Wrap back to a masked array
         energies = np.ma.array([r[0] for r in results])
         states = np.ma.array([r[1] for r in results])
+        hamiltonian = np.ma.array([r[2] for r in results])
 
         # Reshape to the original form given by kvecs
         energies = energies.reshape(kvecs.shape[:-1] + (self.dimH,))
         states = states.reshape(kvecs.shape[:-1] + (self.dimH, self.dimH))
+        hamiltonian = hamiltonian.reshape(kvecs.shape[:-1] + (self.dimH, self.dimH))
 
-        return Bandstructure(self.params, kvecs, energies, states)
+        return Bandstructure(self.params, kvecs, energies, states, hamiltonian)
 
     def solveSingle(self, kvec):
         """Helper function used by solve"""
@@ -131,11 +133,11 @@ class System(metaclass=ABCMeta):
             # This kvector is masked (is outside of the first Brillouin zone).
             # We return masked arrays of the correct size.
 
-            return np.ma.masked_all((self.dimH)), np.ma.masked_all((self.dimH, self.dimH))
+            return np.ma.masked_all((self.dimH)), np.ma.masked_all((self.dimH, self.dimH)), np.ma.masked_all((self.dimH, self.dimH))
 
         # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)
-        return np.linalg.eigh(h)
+        return np.linalg.eigh(h) +(h,)
 
 
 def workerSolveSingle(args):

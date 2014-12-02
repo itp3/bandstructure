@@ -70,7 +70,7 @@ class Lattice():
         y = (vectorB[0]*np.vdot(vectorC,vectorC)-vectorC[0]*np.vdot(vectorB,vectorB))/D
         return np.array([x,y])
 
-    def getKvectorsZone(self, resolution, dilation = False):
+    def getKvectorsZone(self, resolution, dilation = True):
         """Calculate a matrix that contains all the kvectors of the Brillouin zone.
 
         kvectors = getKvectorsZone(resolution, dilation = True)
@@ -380,8 +380,8 @@ class Lattice():
 
         # masking of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matDeltaRAbs = np.sqrt(np.sum(matDeltaR**2,axis=-1))
-        matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol) | \
-            ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None]
+        matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol)
+            #| ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None] #TODO
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
 
         return Distances(matDeltaR, mask = matDeltaRMask)

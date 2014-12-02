@@ -1,16 +1,16 @@
 import numpy as np
 
 class Bandstructure:
-    def __init__(self, params, kvecs, energies, states):
+    def __init__(self, params, kvecs, energies, states,hamiltonian):
         self.params = params
         self.kvecs = kvecs
         self.energies = energies
         self.states = states
+        self.hamiltonian = hamiltonian
 
     def numBands(self):
         """Get the number of bands"""
-
-        pass
+        return self.energies.shape[-1]
 
     def kSpaceDimension(self):
         return len(self.kvecs.shape) - 1
@@ -24,9 +24,59 @@ class Bandstructure:
     def getChernNumbers(self, band=None):
         """Returns the Chern numbers for all bands, unless a specific band index is given."""
 
-        pass
+        from scipy.integrate import simps
 
-    def plot(self, filename="",show=True, processes=None):
+        # remove mask from kvecs
+        kvecsNomask = self.kvecs.copy()
+        kvecsNomask.mask = False
+
+        # === derivatives of the hamiltonians ===
+        # determine step size
+        hx = kvecsNomask[1,0,0]-kvecsNomask[0,0,0]
+        hy = kvecsNomask[0,1,1]-kvecsNomask[0,0,1]
+
+        # determine derivatives
+        Dx = np.ones_like(self.hamiltonian)*np.nan
+        Dy = np.ones_like(self.hamiltonian)*np.nan
+        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/(2*hx)
+        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/(2*hy)
+
+        # === loop over the bands ===
+        d = self.numBands()
+        cherns = []
+
+        if band is None: bands = range(d)
+        else: bands = [band]
+
+        for n in bands:
+            #nth eigenvector
+            vecn = self.states[:,:,:,n]
+            #other eigenvectors
+            vecm = self.states[:,:,:,np.arange(d)[np.arange(d) != n]]
+
+            #nth eigenenergy
+            en = self.energies[:,:,n]
+            #other eigenenergies
+            em = self.energies[:,:,np.arange(d)[np.arange(d) != n]]
+            ediff = (em[:,:,:] - en[:,:,None])**2
+
+            # put everything together
+            vecnDx = np.sum(vecn.conj()[:,:,:,None]*Dx[:,:,:,:],axis=-2)
+            vecnDxvexm = np.sum(vecnDx[:,:,:,None]*vecm[:,:,:,:],axis=-2)
+
+            vecnDy = np.sum(vecn.conj()[:,:,:,None]*Dy[:,:,:,:],axis=-2)
+            vecnDyvexm = np.sum(vecnDy[:,:,:,None]*vecm[:,:,:,:],axis=-2)
+
+            # calculate Berry flux
+            gamma = 2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
+            gamma[np.isnan(gamma)] = 0
+
+            # calculate Chern number
+            cherns.append(simps(simps(gamma, kvecsNomask[0,:,1]), kvecsNomask[:,0,0])/(2*np.pi))
+
+        return np.array(cherns)
+
+    def plot(self, filename="",show=True):
         """Plot the band structure."""
 
         import matplotlib.pyplot as plt
