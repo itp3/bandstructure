@@ -11,6 +11,12 @@ class Lattice():
     __vecsReciprocal = np.array([])
     __posBrillouinZone = np.array([])
     __posBrillouinPath = np.array([])
+    __specialPoints = {
+        'G': [0, 0],
+        'X': [0.5, 0],
+        'Y': [0, 0.5],
+        'M': [0.5, 0.5]
+    }
 
     __tol = 1e-16
 

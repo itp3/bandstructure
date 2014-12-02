@@ -7,28 +7,27 @@ import numpy as np
 from bandstructure import Parameters
 from bandstructure.system import DipolarSystem
 from bandstructure.lattice import SquareLattice, HoneycombLattice
-from bandstructure.plot import Plot
 
 # l = SquareLattice()
 l = HoneycombLattice()
 
 params = Parameters({
-    'cutoff': 20,
+    'lattice': l,
+    'cutoff': 10,
     'tbar': 1,
     'mu': -4.54,
     't': 0.54,
-    'w': 1.97,
-    'lattice': l
+    'w': 1.97
 })
-
-params.showParams()
 
 s = DipolarSystem(params)
 
-p = Plot(s)
-
 k = [0, 4/(np.sqrt(3)*3) * np.pi]
 gam = [0, 0]
-p.plotDispersionPath([k, gam, k])
+path, length = l.getKvectorsPath(300, points=[k, gam, k])
+bs = s.solve(path)
 
-# p.plotDispersion()
+# bz = l.getKvectorsZone(30)
+# bs = s.solve(bz)
+
+bs.plot()

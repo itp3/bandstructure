@@ -2,6 +2,8 @@ import numpy as np
 import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
 
+from .. import Bandstructure
+
 
 class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
@@ -75,9 +77,6 @@ class System(metaclass=ABCMeta):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
 
-        if self.distances is None:
-            raise Exception("The system needs to be initialized before doing any calculations.")
-
         # Compute the exp(i r k) factor
         expf = np.exp(1j * np.ma.dot(self.distances, kvec, strict=True))
 
@@ -93,44 +92,50 @@ class System(metaclass=ABCMeta):
 
         return h
 
-    def solve(self, kvecs, processes=None):
-        """Solve the system for a given (set of) vectors in the Brillouin zone. kvecs can be a
-        single vector or a list of vectors. In the latter case, the number of processes/threads for
+    def solve(self, kvecs=None, processes=None):
+        """Solve the system for a given set of vectors in the Brillouin zone. kvecs can be a
+        list of vectors or None. In the first case, the number of processes/threads for
         parallel computing can be specified. If processes is set to None, all available CPUs
-        will be used."""
+        will be used. If kvecs is set to None, solve for k=[0, 0]."""
 
-        if isinstance(kvecs, np.ndarray):
-            # Reshape the (possibly 2D array) of vectors to a one-dimensional list
-            kvecsR = kvecs.reshape((-1, 2))
+        if self.distances is None:
+            self.initialize()
 
-            if processes == 1:
-                # Use a straight map in the single-process case to allow for cleaner profiling
-                energies = list(map(self.solveSingle, kvecsR))
-            else:
-                pool = mp.Pool(processes)
-                energies = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
+        if kvecs is None:
+            kvecs = np.array([[0, 0]])
 
-            # Wrap back to a masked array
-            energies = np.ma.array(energies)
+        # Reshape the (possibly 2D array) of vectors to a one-dimensional list
+        kvecsR = kvecs.reshape((-1, 2))
 
-            # Reshape energies to the original form given by kvecs
-            return energies.reshape(kvecs.shape[:-1] + (energies.shape[-1],))
+        if processes == 1:
+            # Use a straight map in the single-process case to allow for cleaner profiling
+            results = list(map(self.solveSingle, kvecsR))
         else:
-            return self.solveSingle(kvecs)
+            pool = mp.Pool(processes)
+            results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
+
+        # Wrap back to a masked array
+        energies = np.ma.array([r[0] for r in results])
+        states = np.ma.array([r[1] for r in results])
+
+        # Reshape to the original form given by kvecs
+        energies = energies.reshape(kvecs.shape[:-1] + (self.dimH,))
+        states = states.reshape(kvecs.shape[:-1] + (self.dimH, self.dimH))
+
+        return Bandstructure(self.params, kvecs, energies, states)
 
     def solveSingle(self, kvec):
         """Helper function used by solve"""
 
         if hasattr(kvec, 'mask') and kvec.mask[0]:
             # This kvector is masked (is outside of the first Brillouin zone).
-            # We return a masked vector of the correct size.
-            return np.ma.array(self.dimH * [0], mask=self.dimH * [True])
+            # We return masked arrays of the correct size.
+
+            return np.ma.masked_all((self.dimH)), np.ma.masked_all((self.dimH, self.dimH))
 
         # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)
-        (energies, _) = np.linalg.eigh(h)
-
-        return energies
+        return np.linalg.eigh(h)
 
 
 def workerSolveSingle(args):
