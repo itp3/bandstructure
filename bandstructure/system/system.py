@@ -86,9 +86,9 @@ class System(metaclass=ABCMeta):
         # Reshape Hamiltonian
         h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))
 
-        # TODO: properly handle onsite energies
-        '''if self.diag is not None:
-            h += self.diag'''
+        # Add onsite Hamiltonian:
+        if self.diag is not None:
+            h += self.diag
 
         return h
 

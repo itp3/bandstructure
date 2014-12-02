@@ -163,7 +163,7 @@ class Lattice():
         positions[idxPosition, idxCoordinate]"""
 
         # value that is added to the cutoff to be on the save side
-        numSubs = self.__vecsBasis.shape[0]
+        numSubs = self.numSublattices()
         pos = np.tile(self.__vecsBasis, (numSubs,1,1))
         pos -= pos.transpose(1,0,2)
         safetyregion = np.max(np.sqrt(np.sum(pos**2,axis=-1)))
@@ -231,8 +231,7 @@ class Lattice():
         geometry = getGeometry(cutoff)
         geometry[idxSublattice, idxPosition, idxCoordinate]"""
 
-        # number of sublattices
-        numSubs = self.__vecsBasis.shape[0]
+        numSubs = self.numSublattices()
 
         # === creation of all positions ===
         positions = self.getPositions(cutoff)
@@ -278,8 +277,7 @@ class Lattice():
         self.__vecsBasis = positionsAll
 
     def makeFiniteAlongdirection(self,idxVecLattice, repetitions):
-        # number of sublattices
-        numSubs = self.__vecsBasis.shape[0]
+        numSubs = self.numSublattices()
 
         # === creation of all positions ===
         positions = np.arange(repetitions)[:,None]*self.__vecsLattice[idxVecLattice][None,:]
@@ -294,7 +292,14 @@ class Lattice():
 
         self.__vecsReciprocal = self.getReciprocalVectors()
 
+    def numSublattices(self):
+        """Returns the number of sublattices"""
+
+        return self.__vecsBasis.shape[0]
+
     def getDimensionality(self):
+        """Returns the number of lattice vectors (number of periodic directions)"""
+
         return self.__vecsLattice.shape[0]
 
     def getReciprocalVectors(self):

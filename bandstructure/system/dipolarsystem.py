@@ -37,5 +37,5 @@ class DipolarSystem(System):
 
     def onSite(self):
         mu = self.get("mu")
-        # return np.diag([mu, -mu])
-        return np.diag([mu, -mu, mu, -mu])
+
+        return np.diag([mu, -mu] * self.get("lattice").numSublattices())
