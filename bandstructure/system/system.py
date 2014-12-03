@@ -133,11 +133,13 @@ class System(metaclass=ABCMeta):
             # This kvector is masked (is outside of the first Brillouin zone).
             # We return masked arrays of the correct size.
 
-            return np.ma.masked_all((self.dimH)), np.ma.masked_all((self.dimH, self.dimH)), np.ma.masked_all((self.dimH, self.dimH))
+            return np.ma.masked_all((self.dimH)), \
+                np.ma.masked_all((self.dimH, self.dimH)), \
+                np.ma.masked_all((self.dimH, self.dimH))
 
         # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)
-        return np.linalg.eigh(h) +(h,)
+        return np.linalg.eigh(h) + (h,)
 
 
 def workerSolveSingle(args):

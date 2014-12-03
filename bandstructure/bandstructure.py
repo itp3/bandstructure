@@ -1,7 +1,8 @@
 import numpy as np
 
+
 class Bandstructure:
-    def __init__(self, params, kvecs, energies, states,hamiltonian):
+    def __init__(self, params, kvecs, energies, states, hamiltonian):
         self.params = params
         self.kvecs = kvecs
         self.energies = energies
@@ -76,7 +77,7 @@ class Bandstructure:
 
         return np.array(cherns)
 
-    def plot(self, filename="",show=True):
+    def plot(self, filename=None, show=True):
         """Plot the band structure."""
 
         import matplotlib.pyplot as plt
@@ -86,12 +87,12 @@ class Bandstructure:
 
         if self.kSpaceDimension() == 1:
             # length of the path
-            length = np.cumsum(np.sqrt(np.sum(np.append([[0,0]],\
-                np.diff(self.kvecs,axis=0),axis=0)**2,axis=1)))
+            dk = np.append([[0, 0]], np.diff(self.kvecs, axis=0), axis=0)
+            length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
-            plt.plot(length,energies)
+            plt.plot(length, energies)
         else:
-            from mpl_toolkits.mplot3d import Axes3D
+            from mpl_toolkits.mplot3d import Axes3D  # noqa
             from matplotlib import cm
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
@@ -107,5 +108,8 @@ class Bandstructure:
                                 antialiased=False
                                 )
 
-        if not filename == "": plt.savefig(filename.format(**self.params))
-        if show: plt.show()
+        if filename is not None:
+            plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
