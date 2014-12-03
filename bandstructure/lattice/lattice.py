@@ -239,7 +239,14 @@ class Lattice():
 
         return positionsAll
 
+    def getVecsLattice(self):
+        """Get array of lattice vectors"""
+
+        return self.__vecsLattice
+
     def getVecsBasis(self):
+        """Get array of basis vectors"""
+
         return self.__vecsBasis
 
     def makeFiniteCircle(self, cutoff, center=[0,0]):
