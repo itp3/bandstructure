@@ -11,12 +11,7 @@ class Lattice():
     __vecsReciprocal = np.array([])
     __posBrillouinZone = np.array([])
     __posBrillouinPath = np.array([])
-    __specialPoints = {
-        'G': [0, 0],
-        'X': [0.5, 0],
-        'Y': [0, 0.5],
-        'M': [0.5, 0.5]
-    }
+    __specialPoints = { }
 
     __tol = 1e-16
 
@@ -25,6 +20,81 @@ class Lattice():
 
     def initialize(self):
         pass
+
+    def getSpecialPoints(self, generalizedPoints = False):
+        """Return the list of userdefined and automatically generated special points that can be
+        used to describe a path through the Brillouin zone ( e.g. '$G' stands for automatically
+        generated gamma point)."""
+
+        userdefinedSpecialPoints = self.__specialPoints.copy()
+
+        automaticSpecialPoints = { }
+
+        # === standardize the lattice vectors ===
+        if self.getDimensionality() >= 1:
+            vec1 = self.__vecsReciprocal[0]
+            if np.vdot(vec1,[1,0]) < 0: vec2 *= -1
+
+        if self.getDimensionality() >= 2:
+            vec2 = self.__vecsReciprocal[1]
+            if np.vdot(vec1,vec2) < 0: vec2 *= -1
+            if np.arctan2(vec1[1],vec1[0]) < np.arctan2(vec2[1],vec2[0]): vec1, vec2 = vec2, vec1
+
+        # === calculate special points ===
+        # --- special points for 0D and higher dimensions ---
+        automaticSpecialPoints['$G'] = [0, 0]
+
+        # --- special points for 1D and higher dimensions ---
+        if self.getDimensionality() >= 1:
+            automaticSpecialPoints['$X']      = vec1/2
+            automaticSpecialPoints['-$X']     = -automaticSpecialPoints['$X']
+
+        # --- special points for 2D ---
+        if self.getDimensionality() >= 2:
+            automaticSpecialPoints['$Y']      = vec2/2
+            automaticSpecialPoints['-$Y']     = -automaticSpecialPoints['$Y']
+
+            automaticSpecialPoints['$Z']      = (vec2-vec1)/2
+            automaticSpecialPoints['-$Z']     = -automaticSpecialPoints['$Z']
+
+            automaticSpecialPoints['$A']      = self._calcCircumcenter(2*automaticSpecialPoints['$X'],2*automaticSpecialPoints['$Y'])
+            automaticSpecialPoints['-$A']     = -automaticSpecialPoints['$A']
+
+            automaticSpecialPoints['$B']      = self._calcCircumcenter(2*automaticSpecialPoints['$Y'],2*automaticSpecialPoints['$Z'])
+            automaticSpecialPoints['-$B']     = -automaticSpecialPoints['$B']
+
+            automaticSpecialPoints['$C']      = self._calcCircumcenter(2*automaticSpecialPoints['$Z'],2*automaticSpecialPoints['-$X'])
+            automaticSpecialPoints['-$C']     = -automaticSpecialPoints['$C']
+
+        # === explicit lattice vector dependency? ===
+        if self.getDimensionality() != 0:
+
+            if self.getDimensionality() == 1:
+                normal = self.__vecsReciprocal[0].copy()[::-1]
+                normal[1] *= -1
+                trafo = np.array([self.__vecsReciprocal[0],normal]).T
+
+            if self.getDimensionality() == 2:
+                trafo = np.array([self.__vecsReciprocal[0],self.__vecsReciprocal[1]]).T
+
+            # get rid of the explicit lattice vector dependency
+            if generalizedPoints:
+                trafo = np.linalg.inv(trafo)
+                for k in iter(automaticSpecialPoints.keys()):
+                    automaticSpecialPoints[k] = np.dot(trafo,automaticSpecialPoints[k])
+
+            # introduce the explicit lattice vector dependency
+            if not generalizedPoints:
+                for k in iter(userdefinedSpecialPoints.keys()):
+                    userdefinedSpecialPoints[k] = np.dot(trafo,userdefinedSpecialPoints[k])
+
+        automaticSpecialPoints.update(userdefinedSpecialPoints)
+        return automaticSpecialPoints
+
+    def addSpecialPoint(self,label,pos):
+        """Add a special point."""
+
+        self.__specialPoints['label'] = pos
 
     def addLatticevector(self,vector):
         """Add a lattice vector and calculate the reciprocal vectors."""
@@ -62,7 +132,7 @@ class Lattice():
         else:
             self.__vecsBasis = np.append(self.__vecsBasis,[vector], axis=0)
 
-    def _calcCircumcenter(vectorB, vectorC):
+    def _calcCircumcenter(self,vectorB, vectorC):
         """See http://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates."""
 
         D = 2*(vectorC[1]*vectorB[0]-vectorB[1]*vectorC[0])
@@ -78,12 +148,12 @@ class Lattice():
 
         if self.__vecsReciprocal.shape[0] == 0:
             # === 0D Brillouin zone ===
-            positions = np.array([[[0,0]]])
+            positions = np.ma.array([[[0,0]]])
 
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
             pos = self.__vecsReciprocal[0]/2
-            positions = np.array([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
+            positions = np.ma.array([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
                 np.linspace(-pos[1],pos[1],resolution)])])
 
         else:
@@ -115,25 +185,27 @@ class Lattice():
 
             # slice the matrices
             si, se = np.where(~positionsMask)
-            slice = np.s_[si.min():si.max() + 1, se.min():se.max() + 1]
+            slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
 
             positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
             positions = np.ma.array(positions[slice], mask = positionsMask[slice])
 
         return positions
 
-    def getKvectorsPath(self, resolution, points=None):
+    def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
 
-        kvectors, length = getKvectorsPath(resolution, points=[[0,0],[0,1]])
+        kvectors, length = getKvectorsPath(resolution, pointsdict=["$G","$X"])
         kvectors[idxPosition, idxCoordinate]"""
 
-        if points == None:
-            if self.__vecsReciprocal.shape[0] == 0:
-                points = [[0,0],[0,0]]
-            else:
-                points = [[0,0],self.__vecsReciprocal[0]/2]
-        points = np.array(points)
+        if pointlabels != None:
+            specialPoints = self.getSpecialPoints()
+            points = np.array([specialPoints[p] for p in pointlabels])
+        elif points != None:
+            points = np.array(points)
+        else:
+            points = np.array(["$G","$G"])
+
         numPoints = points.shape[0]
 
         # path through the points
@@ -153,6 +225,23 @@ class Lattice():
             if n < numPoints-1: positions[n-1] = newpos[:-1]
             else: positions[n-1] = newpos
         positions = np.vstack(positions)
+
+
+
+		# TODO: Improve this section!
+        dk = np.append([[0, 0]], np.diff(positions, axis=0), axis=0)
+        length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
+
+        pos = positions.copy()
+        pointpos = []
+        for p in points:
+            idx = np.argmin(np.sum((pos-p)**2,axis=-1))
+            pointpos.append(length[idx])
+            pos[idx] += 100000
+
+
+        self.pointlabels = pointlabels
+        self.points = pointpos
 
         return positions
 
@@ -249,6 +338,9 @@ class Lattice():
 
         return self.__vecsBasis
 
+    def getVecsLattice(self):
+        return self.__vecsLattice
+
     def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
 
@@ -331,7 +423,7 @@ class Lattice():
         else:
             raise Exception("Lattices with more than 2 lattice vectors are not supported")
 
-    def plot(self, filename="",show=True,cutoff=10):
+    def plot(self, filename=None,show=True,cutoff=10):
         """Plot the lattice."""
 
         import matplotlib.pyplot as plt
@@ -347,8 +439,11 @@ class Lattice():
         plt.xlim(-1.5*cutoff,1.5*cutoff)
         plt.ylim(-1.5*cutoff,1.5*cutoff)
 
-        if not filename == "": plt.savefig(filename)
-        if show: plt.show()
+        if filename is not None:
+            plt.savefig(filename)
+
+        if show:
+            plt.show()
 
 
     def getDistances(self, cutoff):
