@@ -78,7 +78,17 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-        expf = np.exp(1j * np.ma.dot(self.distances, kvec, strict=True))
+
+        # TODO:
+        # expf = np.exp(1j * np.ma.dot(self.distances, kvec, strict=True))
+        nSublattices = self.distances.shape[0]
+
+        r = self.distances.copy()
+        vb = self.get("lattice").getVecsBasis()
+        for i in range(nSublattices):
+            for j in range(nSublattices):
+                r[i, j, :] -= vb[j] - vb[i]
+        expf = np.exp(1j * np.ma.dot(r, kvec, strict=True))
 
         # The Hamiltonian is given by the sum over all positions:
         h = (expf[:, :, :, None, None] * self.rates).sum(2)

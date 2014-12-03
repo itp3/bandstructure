@@ -11,9 +11,12 @@ class Bandstructure:
 
     def numBands(self):
         """Get the number of bands"""
+
         return self.energies.shape[-1]
 
     def kSpaceDimension(self):
+        """Returns the dimensionality of the underlying k-space array (1 or 2)."""
+
         return len(self.kvecs.shape) - 1
 
     def getFlatness(self, band=None, local=False):
@@ -76,6 +79,32 @@ class Bandstructure:
             cherns.append(simps(simps(gamma, kvecsNomask[0,:,1]), kvecsNomask[:,0,0])/(2*np.pi))
 
         return np.array(cherns)
+
+    def getBerryPhase(self, band=0):
+        """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
+        band index is given."""
+
+        if self.kSpaceDimension() != 1:
+            raise Exception("Only supports 1D k-space arrays")
+
+        psi = self.states[:, :, band].data
+
+        # Use a smooth gauge for psi=|u_k> by choosing the first entry of |u_k> to be real
+        gauge = np.exp(-1j * np.angle(psi[:, 0]))
+        psi = psi * gauge[:, None]
+
+        # Calculate numerical derivative d/dk |u_k>
+        dk = np.gradient(self.kvecs[:, 0])  # TODO: calculate along any path, not just k_x
+        dpsi = np.zeros(psi.shape, dtype=np.complex)
+        for k in range(psi.shape[1]):
+            dpsi[:, k] = np.gradient(psi[:, k])
+        deriv = dpsi / dk[:, None]
+
+        # Compute <u_k| i * d/dk |u_k>
+        berry = 1j * np.sum(psi.conj() * deriv, axis=1)
+
+        # Integrate over path
+        return np.sum(berry * dk).real
 
     def plot(self, filename=None, show=True):
         """Plot the band structure."""
