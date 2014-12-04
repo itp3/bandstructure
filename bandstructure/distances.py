@@ -74,3 +74,20 @@ class Distances():
         set to true."""
 
         return ~self.getNeighbors(layer).mask[:, :, :, 0]
+
+    def plot(self, filename=None,show=True,cutoff=10):
+        """Plot the distances."""
+
+        import matplotlib.pyplot as plt
+
+        nSubs = self.__withShifts.shape[0]
+        nLinks = self.__withShifts.shape[2]
+
+        abs = np.sqrt(np.sum(self.__withShifts**2,axis=-1)).reshape(nSubs,nLinks*nSubs).T
+        plt.imshow(abs, aspect='auto',interpolation='nearest')
+
+        if filename is not None:
+            plt.savefig(filename)
+
+        if show:
+            plt.show()

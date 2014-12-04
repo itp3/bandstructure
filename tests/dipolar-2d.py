@@ -11,13 +11,13 @@ from bandstructure.lattice import SquareLattice, HoneycombLattice
 # === lattice ===
 #l = SquareLattice()
 l = HoneycombLattice()
-#l.makeFiniteAlongdirection(0,30)
+#l.makeFiniteAlongdirection(0,20)
 l.plot(show=True,cutoff=5)
 
 # === system ===
 params = Parameters({
     'lattice': l,
-    'cutoff': 20,
+    'cutoff': 60,
     'tbar': 1,
     'mu': -4.54,
     't': 0.54,
@@ -25,6 +25,9 @@ params = Parameters({
 })
 
 s = DipolarSystem(params)
+
+#d = l.getDistances(cutoff=20)
+#d.plot()
 
 # === bandstructure ===
 kvecs = l.getKvectorsPath(100, pointlabels=['-X', 'G', 'X'])

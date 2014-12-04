@@ -507,9 +507,12 @@ class Lattice():
         # masking of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matDeltaRAbs = np.sqrt(np.sum(matDeltaR**2,axis=-1))
         matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol)
+        unnecessaryLinks = np.all(matDeltaRMask,axis=(0,1))
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
 
-        return Distances(matDeltaR, matPositionsNoshifts, matDeltaRMask)
+        return Distances(matDeltaR[:,:,~unnecessaryLinks,:],
+            matPositionsNoshifts[:,:,~unnecessaryLinks,:],
+            matDeltaRMask[:,:,~unnecessaryLinks,:])
 
     def __str__(self):
         return str({'vecsLattice': self.__vecsLattice, 'vecsBasis': self.__vecsBasis})
