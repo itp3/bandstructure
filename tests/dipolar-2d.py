@@ -9,9 +9,9 @@ from bandstructure.system import DipolarSystem
 from bandstructure.lattice import SquareLattice, HoneycombLattice
 
 # === lattice ===
-l = SquareLattice()
-#l = HoneycombLattice()
-l.makeFiniteAlongdirection(0,30)
+#l = SquareLattice()
+l = HoneycombLattice()
+#l.makeFiniteAlongdirection(0,30)
 l.plot(show=True,cutoff=5)
 
 # === system ===
@@ -19,7 +19,7 @@ params = Parameters({
     'lattice': l,
     'cutoff': 10,
     'tbar': 1,
-    'mu': 0,#-4.54,
+    'mu': -4.54,
     't': 0.54,
     'w': 1.97
 })

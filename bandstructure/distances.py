@@ -1,17 +1,36 @@
 import numpy as np
 
-class Distances(np.ma.MaskedArray):
-    """Array to store the distances. This is just a numpy mask array with additional functionality."""
+class Distances():
+    """Array to store the distances."""
 
     __tol = 1e-16
     __differentdistances = None
     __absdistances = None
 
+    __withShifts = None
+    __noShifts = None
+
+    def __init__(self, withShifts, noShifts, mask):
+        self.__withShifts = np.ma.array(withShifts,mask=mask)
+        self.__noShifts = np.ma.array(noShifts,mask=mask)
+
+    @property
+    def withShifts(self):
+        return self.__withShifts
+
+    @property
+    def noShifts(self):
+        return self.__noShifts
+
+    @property
+    def mask(self):
+        return self.__withShifts.mask
+
     @property
     def absdistances(self):
         if self.__absdistances is None:
-            self.__absdistances = np.sqrt(np.sum(self**2,axis=-1))
-            self.flags.writeable = False
+            self.__absdistances = np.sqrt(np.sum(self.__withShifts**2,axis=-1))
+            self.setWriteprotection()
         return self.__absdistances
 
     @property
@@ -19,8 +38,12 @@ class Distances(np.ma.MaskedArray):
         if self.__differentdistances is None:
             sorteddist = np.sort(self.absdistances,axis=None)
             self.__differentdistances = sorteddist[np.append(True,np.diff(sorteddist) > self.__tol)]
-            self.flags.writeable = False
+            self.setWriteprotection()
         return self.__differentdistances
+
+    def setWriteprotection():
+        self.__withShifts.flags.writeable = False
+        self.__noShifts.flags.writeable = False
 
     def getNeighborsCutoff(self,layer = 1):
         """Return the smallest distance that occures in the lattice (if layer = 1) or
@@ -44,7 +67,7 @@ class Distances(np.ma.MaskedArray):
             matDeltaRMask = (self.absdistances > c[0] + self.__tol) | (self.absdistances <= c[1] + self.__tol)
 
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
-        return Distances(self, mask = matDeltaRMask)
+        return Distances(self.__withShifts, self.__noShifts, mask = matDeltaRMask)
 
     def getNeighborsMask(self,layer = 1):
         """Returns a boolean array with the corresponding layer of neighbors

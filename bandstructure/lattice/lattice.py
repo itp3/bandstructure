@@ -228,7 +228,7 @@ class Lattice():
 
 
 
-		# TODO: Improve this section!
+        # TODO: Improve this section!
         dk = np.append([[0, 0]], np.diff(positions, axis=0), axis=0)
         length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
@@ -472,8 +472,12 @@ class Lattice():
         # array of central positions [Sub, Coord] that will be repeated to create the matrix matDeltaR
         positionsCentral = shifts
 
+        # array of the positions with no shifts
+        positionsNoshifts = np.tile(positions, (numSubs,1,1))
+        matPositionsNoshifts = np.tile(positionsNoshifts, (numSubs,1,1,1))
+
         # array of all positions [Sub, Link, Coord] that will be repeated to create the matrix matDeltaR
-        positionsAll = np.tile(positions, (numSubs,1,1)) + positionsCentral[:,None]
+        positionsAll = positionsNoshifts + positionsCentral[:,None]
 
         # creation of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matPositionsCentral = np.tile(positionsCentral, (numLinks,numSubs, 1,1)).transpose(2,1,0,3)
@@ -486,7 +490,7 @@ class Lattice():
             #| ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None] #TODO
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
 
-        return Distances(matDeltaR, mask = matDeltaRMask)
+        return Distances(matDeltaR, matPositionsNoshifts, matDeltaRMask)
 
     def __str__(self):
         return str({'vecsLattice': self.__vecsLattice, 'vecsBasis': self.__vecsBasis})

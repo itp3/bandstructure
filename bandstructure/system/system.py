@@ -54,10 +54,12 @@ class System(metaclass=ABCMeta):
 
         # Get distances within a certain cutoff radius
         cutoff = self.get("cutoff")
-        self.distances = self.get("lattice").getDistances(cutoff)
+        distances = self.get("lattice").getDistances(cutoff)
+
+        self.delta = distances.noShifts
 
         # Get the tunneling rates for each displacement vector
-        self.rates = self.tunnelingRate(self.distances)
+        self.rates = self.tunnelingRate(distances.withShifts)
 
         # Check the dimension of the returned tensor
         rs = self.rates.shape
@@ -68,7 +70,7 @@ class System(metaclass=ABCMeta):
 
         self.diag = self.onSite()
 
-        nSublattices = self.distances.shape[0]
+        nSublattices = self.delta.shape[0]
         nOrbitals = self.rates.shape[4]
 
         self.dimH = nOrbitals * nSublattices
@@ -78,17 +80,7 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-
-        # TODO:
-        # expf = np.exp(1j * np.ma.dot(self.distances, kvec, strict=True))
-        nSublattices = self.distances.shape[0]
-
-        r = self.distances.copy()
-        vb = self.get("lattice").getVecsBasis()
-        for i in range(nSublattices):
-            for j in range(nSublattices):
-                r[i, j, :] -= vb[j] - vb[i]
-        expf = np.exp(1j * np.ma.dot(r, kvec, strict=True))
+        expf = np.exp(1j * np.ma.dot(self.delta, kvec, strict=True))
 
         # The Hamiltonian is given by the sum over all positions:
         h = (expf[:, :, :, None, None] * self.rates).sum(2)
