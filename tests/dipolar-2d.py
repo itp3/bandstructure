@@ -17,7 +17,7 @@ l.plot(show=True,cutoff=5)
 # === system ===
 params = Parameters({
     'lattice': l,
-    'cutoff': 10,
+    'cutoff': 20,
     'tbar': 1,
     'mu': -4.54,
     't': 0.54,
@@ -27,13 +27,13 @@ params = Parameters({
 s = DipolarSystem(params)
 
 # === bandstructure ===
-#kvecs = l.getKvectorsPath(100, pointlabels=['-$X', '$G', '$X'])
-kvecs = l.getKvectorsBox(60)
+kvecs = l.getKvectorsPath(100, pointlabels=['-X', 'G', 'X'])
+#kvecs = l.getKvectorsBox(60)
 #kvecs = l.getKvectorsZone(60)
 
 b = s.solve(kvecs)
-#b.plot(show=True)
+b.plot(show=True)
 
 # === chern numbers ===
-cherns = b.getChernNumbers()
-print(cherns,np.sum(cherns))
+#cherns = b.getChernNumbers()
+#print(cherns,np.sum(cherns))

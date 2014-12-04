@@ -21,9 +21,9 @@ class Lattice():
     def initialize(self):
         pass
 
-    def getSpecialPoints(self, generalizedPoints = False):
+    def getSpecialPoints(self, reciprocalBasis = False):
         """Return the list of userdefined and automatically generated special points that can be
-        used to describe a path through the Brillouin zone ( e.g. '$G' stands for automatically
+        used to describe a path through the Brillouin zone ( e.g. 'G' stands for automatically
         generated gamma point)."""
 
         userdefinedSpecialPoints = self.__specialPoints.copy()
@@ -42,29 +42,29 @@ class Lattice():
 
         # === calculate special points ===
         # --- special points for 0D and higher dimensions ---
-        automaticSpecialPoints['$G'] = [0, 0]
+        automaticSpecialPoints['G'] = [0, 0]
 
         # --- special points for 1D and higher dimensions ---
         if self.getDimensionality() >= 1:
-            automaticSpecialPoints['$X']      = vec1/2
-            automaticSpecialPoints['-$X']     = -automaticSpecialPoints['$X']
+            automaticSpecialPoints['X']      = vec1/2
+            automaticSpecialPoints['-X']     = -automaticSpecialPoints['X']
 
         # --- special points for 2D ---
         if self.getDimensionality() >= 2:
-            automaticSpecialPoints['$Y']      = vec2/2
-            automaticSpecialPoints['-$Y']     = -automaticSpecialPoints['$Y']
+            automaticSpecialPoints['Y']      = vec2/2
+            automaticSpecialPoints['-Y']     = -automaticSpecialPoints['Y']
 
-            automaticSpecialPoints['$Z']      = (vec2-vec1)/2
-            automaticSpecialPoints['-$Z']     = -automaticSpecialPoints['$Z']
+            automaticSpecialPoints['Z']      = (vec2-vec1)/2
+            automaticSpecialPoints['-Z']     = -automaticSpecialPoints['Z']
 
-            automaticSpecialPoints['$A']      = self._calcCircumcenter(2*automaticSpecialPoints['$X'],2*automaticSpecialPoints['$Y'])
-            automaticSpecialPoints['-$A']     = -automaticSpecialPoints['$A']
+            automaticSpecialPoints['A']      = self._calcCircumcenter(2*automaticSpecialPoints['X'],2*automaticSpecialPoints['Y'])
+            automaticSpecialPoints['-A']     = -automaticSpecialPoints['A']
 
-            automaticSpecialPoints['$B']      = self._calcCircumcenter(2*automaticSpecialPoints['$Y'],2*automaticSpecialPoints['$Z'])
-            automaticSpecialPoints['-$B']     = -automaticSpecialPoints['$B']
+            automaticSpecialPoints['B']      = self._calcCircumcenter(2*automaticSpecialPoints['Y'],2*automaticSpecialPoints['Z'])
+            automaticSpecialPoints['-B']     = -automaticSpecialPoints['B']
 
-            automaticSpecialPoints['$C']      = self._calcCircumcenter(2*automaticSpecialPoints['$Z'],2*automaticSpecialPoints['-$X'])
-            automaticSpecialPoints['-$C']     = -automaticSpecialPoints['$C']
+            automaticSpecialPoints['C']      = self._calcCircumcenter(2*automaticSpecialPoints['Z'],2*automaticSpecialPoints['-X'])
+            automaticSpecialPoints['-C']     = -automaticSpecialPoints['C']
 
         # === explicit lattice vector dependency? ===
         if self.getDimensionality() != 0:
@@ -78,17 +78,19 @@ class Lattice():
                 trafo = np.array([self.__vecsReciprocal[0],self.__vecsReciprocal[1]]).T
 
             # get rid of the explicit lattice vector dependency
-            if generalizedPoints:
+            if reciprocalBasis:
                 trafo = np.linalg.inv(trafo)
                 for k in iter(automaticSpecialPoints.keys()):
                     automaticSpecialPoints[k] = np.dot(trafo,automaticSpecialPoints[k])
 
             # introduce the explicit lattice vector dependency
-            if not generalizedPoints:
+            if not reciprocalBasis:
                 for k in iter(userdefinedSpecialPoints.keys()):
                     userdefinedSpecialPoints[k] = np.dot(trafo,userdefinedSpecialPoints[k])
 
-        automaticSpecialPoints.update(userdefinedSpecialPoints)
+        for k in iter(userdefinedSpecialPoints.keys()):
+            automaticSpecialPoints[k] = userdefinedSpecialPoints[k]
+
         return automaticSpecialPoints
 
     def addSpecialPoint(self,label,pos):
@@ -216,7 +218,7 @@ class Lattice():
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
 
-        kvectors, length = getKvectorsPath(resolution, pointsdict=["$G","$X"])
+        kvectors, length = getKvectorsPath(resolution, pointsdict=["G","X"])
         kvectors[idxPosition, idxCoordinate]"""
 
         if pointlabels != None:
@@ -225,7 +227,7 @@ class Lattice():
         elif points != None:
             points = np.array(points)
         else:
-            points = np.array(["$G","$G"])
+            points = np.array(["G","G"])
 
         numPoints = points.shape[0]
 
@@ -248,18 +250,16 @@ class Lattice():
         positions = np.vstack(positions)
 
 
-
-        # TODO: Improve this section!
+        # save the labels and positions of sepcial points
         dk = np.append([[0, 0]], np.diff(positions, axis=0), axis=0)
         length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
         pos = positions.copy()
         pointpos = []
         for p in points:
-            idx = np.argmin(np.sum((pos-p)**2,axis=-1))
+            idx = np.nanargmin(np.sum((pos-p)**2,axis=-1))
             pointpos.append(length[idx])
-            pos[idx] += 100000
-
+            pos[idx] = np.nan
 
         self.pointlabels = pointlabels
         self.points = pointpos
@@ -466,7 +466,6 @@ class Lattice():
         if show:
             plt.show()
 
-
     def getDistances(self, cutoff):
         """Create a matrix that contains all distances from the central position of a
         sublattice to all positions of another one.
@@ -508,7 +507,6 @@ class Lattice():
         # masking of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matDeltaRAbs = np.sqrt(np.sum(matDeltaR**2,axis=-1))
         matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol)
-            #| ~np.tri(numSubs,numSubs,dtype=bool)[:,:,None] #TODO
         matDeltaRMask = np.array([matDeltaRMask, matDeltaRMask]).transpose(1,2,3,0)
 
         return Distances(matDeltaR, matPositionsNoshifts, matDeltaRMask)
