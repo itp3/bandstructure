@@ -66,16 +66,20 @@ class Bandstructure:
         if band is None: bands = range(d)
         else: bands = [band]
 
+        # workaround to avoid warnings since numpy calculations are also done for masked values :-/
+        states = self.states.filled(0)
+        energies = self.energies.filled(0)
+
         for n in bands:
             #nth eigenvector
-            vecn = self.states[:,:,:,n]
+            vecn = states[:,:,:,n]
             #other eigenvectors
-            vecm = self.states[:,:,:,np.arange(d)[np.arange(d) != n]]
+            vecm = states[:,:,:,np.arange(d)[np.arange(d) != n]]
 
             #nth eigenenergy
-            en = self.energies[:,:,n]
+            en = energies[:,:,n]
             #other eigenenergies
-            em = self.energies[:,:,np.arange(d)[np.arange(d) != n]]
+            em = energies[:,:,np.arange(d)[np.arange(d) != n]]
             ediff = (em[:,:,:] - en[:,:,None])**2
 
             # put everything together

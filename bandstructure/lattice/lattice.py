@@ -198,10 +198,12 @@ class Lattice():
 
         angle = np.abs(np.arccos(np.dot(self.__vecsReciprocal[0],self.__vecsReciprocal[1])/(l1*l2)))
 
+        l2*=np.sin(angle)
+
         x,step = np.linspace(0, l1, resolution,endpoint=False,retstep=True)
         x = np.array([x[0]-2*step,x[0]-step]+x.tolist()+[x[-1]+step,x[-1]+2*step])
 
-        y,step = np.linspace(0, l2*np.sin(angle), resolution,endpoint=False,retstep=True)
+        y,step = np.linspace(0, l2, resolution,endpoint=False,retstep=True)
         y = np.array([y[0]-2*step,y[0]-step]+y.tolist()+[y[-1]+step,y[-1]+2*step])
 
         positions=np.ma.array(np.meshgrid(x, y)).transpose(2,1,0)
