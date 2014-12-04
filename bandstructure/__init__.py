@@ -2,3 +2,4 @@
 
 from .parameters import Parameters
 from .bandstructure import Bandstructure
+from .distances import Distances
