@@ -192,6 +192,25 @@ class Lattice():
 
         return positions
 
+    def getKvectorsBox(self, resolution):
+        l1 = np.linalg.norm(self.__vecsReciprocal[0])
+        l2 = np.linalg.norm(self.__vecsReciprocal[1])
+
+        angle = np.abs(np.arccos(np.dot(self.__vecsReciprocal[0],self.__vecsReciprocal[1])/(l1*l2)))
+
+        x,step = np.linspace(0, l1, resolution,endpoint=False,retstep=True)
+        x = np.array([x[0]-2*step,x[0]-step]+x.tolist()+[x[-1]+step,x[-1]+2*step])
+
+        y,step = np.linspace(0, l2*np.sin(angle), resolution,endpoint=False,retstep=True)
+        y = np.array([y[0]-2*step,y[0]-step]+y.tolist()+[y[-1]+step,y[-1]+2*step])
+
+        positions=np.ma.array(np.meshgrid(x, y)).transpose(2,1,0)
+        positions.mask = True
+        positions.mask[1:-1,1:-1] = False
+
+        return positions
+
+
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
 
@@ -416,7 +435,7 @@ class Lattice():
             vecs = np.array([
                 np.dot(np.array([[0,1],[-1,0]]),self.__vecsLattice[1]),
                 np.dot(np.array([[0,-1],[1,0]]),self.__vecsLattice[0])
-                ])
+                ],dtype=np.float)
             vecs[0] = 2*np.pi*vecs[0]/ (np.vdot(self.__vecsLattice[0], vecs[0]))
             vecs[1] = 2*np.pi*vecs[1]/ (np.vdot(self.__vecsLattice[1], vecs[1]))
             return vecs

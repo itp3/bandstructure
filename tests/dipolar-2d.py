@@ -27,12 +27,13 @@ params = Parameters({
 s = DipolarSystem(params)
 
 # === bandstructure ===
-kvecs = l.getKvectorsPath(100, pointlabels=['-$X', '$G', '$X'])
-#kvecs = l.getKvectorsZone(30)#, points=[k, gam, k])
+#kvecs = l.getKvectorsPath(100, pointlabels=['-$X', '$G', '$X'])
+kvecs = l.getKvectorsBox(30)
+#kvecs = l.getKvectorsZone(30)
 
 b = s.solve(kvecs)
-b.plot(show=True)
+#b.plot(show=True)
 
 # === chern numbers ===
-#cherns = b.getChernNumbers()
-#print(cherns,np.sum(cherns)) # TODO : Verhalten bei band=1, Beseitigung der Warnungen, Rechengenauigkeit?, erosion der BZ fürs Plotten (besser: dilation für Ableitungen)
+cherns = b.getChernNumbers()
+print(cherns,np.sum(cherns)) # TODO : Verhalten bei band=1, Beseitigung der Warnungen, Rechengenauigkeit?, erosion der BZ fürs Plotten (besser: dilation für Ableitungen)
