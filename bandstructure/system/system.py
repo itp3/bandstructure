@@ -115,9 +115,9 @@ class System(metaclass=ABCMeta):
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
 
         # Wrap back to a masked array
-        energies = np.zeros(kvecs.shape[:-1] + (self.dimH,),dtype=np.float)
-        states = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)
-        hamiltonian = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)
+        energies = np.zeros(kvecs.shape[:-1] + (self.dimH,),dtype=np.float)*np.nan
+        states = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)*np.nan
+        hamiltonian = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)*np.nan
 
         energies[nomask] = [r[0] for r in results]
         states[nomask] = [r[1] for r in results]

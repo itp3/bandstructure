@@ -65,7 +65,6 @@ class Bandstructure:
             #other eigenenergies
             em = self.energies[:,:,np.arange(d)[np.arange(d) != n]]
             ediff = (em[:,:,:] - en[:,:,None])**2
-            ediff[mask] = 1
 
             # put everything together
             vecnDx = np.sum(vecn.conj()[:,:,:,None]*Dx[:,:,:,:],axis=-2)
@@ -140,9 +139,12 @@ class Bandstructure:
             ax = fig.add_subplot(111, projection='3d')
 
             for band in range(self.energies.shape[-1]):
+                energy = self.energies[:, :, band].copy()
+                energy[np.isnan(energy)] = np.nanmin(energy)
+
                 ax.plot_surface(self.kvecs.points_masked[:, :, 0],
                                 self.kvecs.points_masked[:, :, 1],
-                                self.energies[:, :, band],
+                                energy,
                                 cstride=1,
                                 rstride=1,
                                 cmap=cm.coolwarm,
