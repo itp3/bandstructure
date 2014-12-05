@@ -140,10 +140,9 @@ class Bandstructure:
             length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
             plt.plot(length, energies)
-
-            l = self.params.get("lattice")
-            plt.xticks(l.points, l.pointlabels)
-            plt.xlim(min(l.points),max(l.points))
+            specialpoints = length[self.kvecs.specialpoints_idx]
+            plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
+            plt.xlim(min(specialpoints),max(specialpoints))
         else:
             from mpl_toolkits.mplot3d import Axes3D  # noqa
             from matplotlib import cm

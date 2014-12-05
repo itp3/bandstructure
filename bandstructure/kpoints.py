@@ -10,9 +10,15 @@ class Kpoints():
     __mask = None
     __masksmall = None
 
-    def __init__(self, points, mask = None):
+    __specialpoints_idx = None
+    __specialpoints_labels = None
+
+    def __init__(self, points, mask = None, specialpoints_idx = None, specialpoints_labels = None):
         self.points = points
         self.mask = mask
+
+        self.specialpoints_idx = specialpoints_idx
+        self.specialpoints_labels = specialpoints_labels
 
     def _resetPoints(self):
         self.__points_masked = None
@@ -24,14 +30,14 @@ class Kpoints():
 
     @property
     def points_masked(self):
-        if self.__points_masked == None:
+        if self.__points_masked is None:
             self.__points_masked = self.__points.copy()
             self.__points_masked[self.__mask] = np.nan
         return self.__points_masked
 
     @property
     def points_maskedsmall(self):
-        if self.__points_maskedsmall == None:
+        if self.__points_maskedsmall is None:
             self.__points_maskedsmall = self.__points.copy()
             self.__points_maskedsmall[self.__masksmall] = np.nan
         return self.__points_maskedsmall
@@ -48,6 +54,14 @@ class Kpoints():
     def shape(self):
         return self.__points.shape
 
+    @property
+    def specialpoints_idx(self):
+        return self.__specialpoints_idx
+
+    @property
+    def specialpoints_labels(self):
+        return self.__specialpoints_labels
+
     @points.setter
     def points(self, points):
         self.__points = points
@@ -61,3 +75,11 @@ class Kpoints():
         self.__masksmall = ~binary_dilation(~self.__mask.copy())
 
         self._resetPoints()
+
+    @specialpoints_idx.setter
+    def specialpoints_idx(self, specialpoints_idx):
+        self.__specialpoints_idx = specialpoints_idx
+
+    @specialpoints_labels.setter
+    def specialpoints_labels(self,specialpoints_labels):
+        self.__specialpoints_labels = specialpoints_labels
