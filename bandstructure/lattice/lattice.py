@@ -2,6 +2,8 @@ import numpy as np
 import itertools
 from scipy.ndimage import binary_dilation
 from ..distances import Distances
+from ..kpoints import Kpoints
+
 
 class Lattice():
     """Class to generate the lattice."""
@@ -150,13 +152,13 @@ class Lattice():
 
         if self.__vecsReciprocal.shape[0] == 0:
             # === 0D Brillouin zone ===
-            positions = np.ma.array([[[0,0]]], mask=False)
+            positions = Kpoints([[[0,0]]])
 
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
             pos = self.__vecsReciprocal[0]/2
-            positions = np.ma.array([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
-                np.linspace(-pos[1],pos[1],resolution)])], mask=False)
+            positions = Kpoints([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
+                np.linspace(-pos[1],pos[1],resolution)])])
 
         else:
             # === 2D Brillouin zone ===
@@ -190,7 +192,7 @@ class Lattice():
             slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
 
             positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
-            positions = np.ma.array(positions[slice], mask = positionsMask[slice])
+            positions = Kpoints(positions[slice], mask = positionsMask[slice])
 
         return positions
 
@@ -208,15 +210,16 @@ class Lattice():
         y,step = np.linspace(0, l2, resolution,endpoint=False,retstep=True)
         y = np.array([y[0]-2*step,y[0]-step]+y.tolist()+[y[-1]+step,y[-1]+2*step])
 
-        positions=np.ma.array(np.meshgrid(x, y)).transpose(2,1,0)
-        positions.mask = True
-        positions.mask[1:-1,1:-1] = False
+        positions=np.transpose(np.meshgrid(x, y),(2,1,0))
 
         a = -np.arctan2(self.__vecsReciprocal[0,1],self.__vecsReciprocal[0,0])
         matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
         positions = np.dot(positions,matRotate)
 
-        return positions
+        positionsMask = np.ones_like(positions,dtype=np.bool)
+        positionsMask[1:-1,1:-1] = False
+
+        return Kpoints(positions, mask = positionsMask)
 
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
@@ -267,7 +270,7 @@ class Lattice():
         self.pointlabels = pointlabels
         self.points = pointpos
 
-        return positions
+        return Kpoints(positions)
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.

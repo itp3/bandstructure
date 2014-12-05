@@ -30,12 +30,12 @@ s = DipolarSystem(params)
 #d.plot()
 
 # === bandstructure ===
-kvecs = l.getKvectorsPath(100, pointlabels=['-X', 'G', 'X'])
+#kvecs = l.getKvectorsPath(100, pointlabels=['-X', 'G', 'X'])
 kvecs = l.getKvectorsBox(30)
 #kvecs = l.getKvectorsZone(30)
 
 b = s.solve(kvecs)
-#b.plot(show=True)
+b.plot(show=True)
 
 #print(b.getBerryPhase(2))
 

@@ -107,7 +107,7 @@ class System(metaclass=ABCMeta):
             kvecs = np.array([[0, 0]])
 
         # Reshape the (possibly 2D array) of vectors to a one-dimensional list
-        kvecsR = kvecs.reshape((-1, 2))
+        kvecsR = kvecs.pointsmasked.reshape((-1, 2))
 
         if processes == 1:
             # Use a straight map in the single-process case to allow for cleaner profiling
@@ -131,7 +131,7 @@ class System(metaclass=ABCMeta):
     def solveSingle(self, kvec):
         """Helper function used by solve"""
 
-        if hasattr(kvec, 'mask') and kvec.mask[0]:
+        if np.any(np.isnan(kvec)):
             # This kvector is masked (is outside of the first Brillouin zone).
             # We return masked arrays of the correct size.
 

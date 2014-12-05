@@ -30,7 +30,7 @@ class Bandstructure:
         from scipy.integrate import simps
 
         # remove mask from kvecs
-        kvecsNomask = self.kvecs.data
+        kvecsNomask = self.kvecs.points
 
         # === derivatives of the hamiltonians ===
         # determine step size
@@ -132,11 +132,11 @@ class Bandstructure:
         import matplotlib.pyplot as plt
 
         # Fill with NaN for 2D plotting
-        energies = self.energies.filled(np.nan)
+        energies = self.energies.filled(0)
 
         if self.kSpaceDimension() == 1:
             # length of the path
-            dk = np.append([[0, 0]], np.diff(self.kvecs, axis=0), axis=0)
+            dk = np.append([[0, 0]], np.diff(self.kvecs.pointsmasked, axis=0), axis=0)
             length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
             plt.plot(length, energies)
@@ -151,8 +151,8 @@ class Bandstructure:
             ax = fig.add_subplot(111, projection='3d')
 
             for band in range(energies.shape[-1]):
-                ax.plot_surface(self.kvecs[:, :, 0],
-                                self.kvecs[:, :, 1],
+                ax.plot_surface(self.kvecs.pointsmasked[:, :, 0],
+                                self.kvecs.pointsmasked[:, :, 1],
                                 energies[:, :, band],
                                 cstride=1,
                                 rstride=1,
