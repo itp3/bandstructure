@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
-from ..distances import Distances
-from ..kpoints import Kpoints
+from .. import Distances
+from .. import Kpoints
 
 
 class Lattice():
@@ -262,7 +262,7 @@ class Lattice():
 
         specialpoints_labels = pointlabels
 
-        return Kpoints(positions, None, specialpoints_idx, specialpoints_labels)
+        return Kpoints([positions], None, [specialpoints_idx], specialpoints_labels)
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.

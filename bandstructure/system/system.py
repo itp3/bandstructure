@@ -3,6 +3,7 @@ import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
 
 from .. import Bandstructure
+from .. import Kpoints
 
 
 class System(metaclass=ABCMeta):
@@ -76,7 +77,7 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-        expf = np.exp(1j * np.ma.dot(self.delta, kvec, strict=True))
+        expf = np.exp(1j * np.ma.dot(self.delta, kvec, strict=True)) # TODO get rid of the .ma (Distances should contain a mask comparable to Kpoints)
 
         # The Hamiltonian is given by the sum over all positions:
         h = (expf[:, :, :, None, None] * self.rates).sum(2)
@@ -90,7 +91,7 @@ class System(metaclass=ABCMeta):
 
         return h
 
-    def solve(self, kvecs=None, processes=None):
+    def solve(self, kvecs, processes=None):
         """Solve the system for a given set of vectors in the Brillouin zone. kvecs can be a
         list of vectors or None. In the first case, the number of processes/threads for
         parallel computing can be specified. If processes is set to None, all available CPUs
@@ -100,10 +101,11 @@ class System(metaclass=ABCMeta):
             self.initialize()
 
         if kvecs is None:
-            kvecs = np.array([[0, 0]])
+            kvecs = Kpoints([[0, 0]])
 
-        # Reshape the (possibly 2D array) of vectors to a one-dimensional list
-        kvecsR = kvecs.points_maskedsmall.reshape((-1, 2))
+        # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only the non-masked values
+        nomask = ~kvecs.masksmall[:,:,0]
+        kvecsR = kvecs.points[nomask]
 
         if processes == 1:
             # Use a straight map in the single-process case to allow for cleaner profiling
@@ -113,27 +115,18 @@ class System(metaclass=ABCMeta):
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
 
         # Wrap back to a masked array
-        energies = np.ma.array([r[0] for r in results])
-        states = np.ma.array([r[1] for r in results])
-        hamiltonian = np.ma.array([r[2] for r in results])
+        energies = np.zeros(kvecs.shape[:-1] + (self.dimH,),dtype=np.float)
+        states = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)
+        hamiltonian = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)
 
-        # Reshape to the original form given by kvecs
-        energies = energies.reshape(kvecs.shape[:-1] + (self.dimH,))
-        states = states.reshape(kvecs.shape[:-1] + (self.dimH, self.dimH))
-        hamiltonian = hamiltonian.reshape(kvecs.shape[:-1] + (self.dimH, self.dimH))
+        energies[nomask] = [r[0] for r in results]
+        states[nomask] = [r[1] for r in results]
+        hamiltonian[nomask] = [r[2] for r in results]
 
         return Bandstructure(self.params, kvecs, energies, states, hamiltonian)
 
     def solveSingle(self, kvec):
         """Helper function used by solve"""
-
-        if np.any(np.isnan(kvec)):
-            # This kvector is masked (is outside of the first Brillouin zone).
-            # We return masked arrays of the correct size.
-
-            return np.ma.masked_all((self.dimH)), \
-                np.ma.masked_all((self.dimH, self.dimH)), \
-                np.ma.masked_all((self.dimH, self.dimH))
 
         # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)

@@ -20,9 +20,24 @@ class Kpoints():
         self.specialpoints_idx = specialpoints_idx
         self.specialpoints_labels = specialpoints_labels
 
+        # TODO np.squeeze inside the constructor, profile all the changes, check whether the dimensions of the input are compatible
+        # TODO maskForCoordinates vs. maskForPoints (maybe maskForPoints is enough)
+
     def _resetPoints(self):
         self.__points_masked = None
         self.__points_maskedsmall = None
+
+    @property
+    def dim(self): # TODO
+        pass
+
+    @property
+    def valid(self): # TODO
+        pass
+
+    @property
+    def validsmall(self): # TODO
+        pass
 
     @property
     def points(self):
@@ -64,7 +79,7 @@ class Kpoints():
 
     @points.setter
     def points(self, points):
-        self.__points = points
+        self.__points = np.array(points)
 
         self._resetPoints()
 
