@@ -150,13 +150,13 @@ class Lattice():
 
         if self.__vecsReciprocal.shape[0] == 0:
             # === 0D Brillouin zone ===
-            positions = np.ma.array([[[0,0]]])
+            positions = np.ma.array([[[0,0]]], mask=False)
 
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
             pos = self.__vecsReciprocal[0]/2
             positions = np.ma.array([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
-                np.linspace(-pos[1],pos[1],resolution)])])
+                np.linspace(-pos[1],pos[1],resolution)])], mask=False)
 
         else:
             # === 2D Brillouin zone ===
