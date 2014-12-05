@@ -1,6 +1,5 @@
 import numpy as np
 import itertools
-from scipy.ndimage import binary_dilation
 from ..distances import Distances
 from ..kpoints import Kpoints
 
@@ -184,12 +183,9 @@ class Lattice():
             # --- mask all points that are not close to the central position ---
             positionsMask = np.argmin(distances,axis=0) > 0
 
-            # make the mask a little bit smaller
-            if dilation: positionsMask = ~binary_dilation(~positionsMask)
-
             # slice the matrices
             si, se = np.where(~positionsMask)
-            slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
+            slice = np.s_[si.min()-2:si.max() + 3, se.min()-2:se.max() + 3]
 
             positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
             positions = Kpoints(positions[slice], mask = positionsMask[slice])
@@ -217,7 +213,7 @@ class Lattice():
         positions = np.dot(positions,matRotate)
 
         positionsMask = np.ones_like(positions,dtype=np.bool)
-        positionsMask[1:-1,1:-1] = False
+        positionsMask[2:-2,2:-2] = False
 
         return Kpoints(positions, mask = positionsMask)
 

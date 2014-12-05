@@ -103,7 +103,7 @@ class System(metaclass=ABCMeta):
             kvecs = np.array([[0, 0]])
 
         # Reshape the (possibly 2D array) of vectors to a one-dimensional list
-        kvecsR = kvecs.pointsmasked.reshape((-1, 2))
+        kvecsR = kvecs.points_maskedsmall.reshape((-1, 2))
 
         if processes == 1:
             # Use a straight map in the single-process case to allow for cleaner profiling

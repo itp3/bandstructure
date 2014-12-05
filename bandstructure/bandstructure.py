@@ -136,7 +136,7 @@ class Bandstructure:
 
         if self.kSpaceDimension() == 1:
             # length of the path
-            dk = np.append([[0, 0]], np.diff(self.kvecs.pointsmasked, axis=0), axis=0)
+            dk = np.append([[0, 0]], np.diff(self.kvecs.points_masked, axis=0), axis=0)
             length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
 
             plt.plot(length, energies)
@@ -151,8 +151,8 @@ class Bandstructure:
             ax = fig.add_subplot(111, projection='3d')
 
             for band in range(energies.shape[-1]):
-                ax.plot_surface(self.kvecs.pointsmasked[:, :, 0],
-                                self.kvecs.pointsmasked[:, :, 1],
+                ax.plot_surface(self.kvecs.points_masked[:, :, 0],
+                                self.kvecs.points_masked[:, :, 1],
                                 energies[:, :, band],
                                 cstride=1,
                                 rstride=1,
