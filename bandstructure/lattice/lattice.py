@@ -212,8 +212,11 @@ class Lattice():
         positions.mask = True
         positions.mask[1:-1,1:-1] = False
 
-        return positions
+        a = -np.arctan2(self.__vecsReciprocal[0,1],self.__vecsReciprocal[0,0])
+        matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
+        positions = np.dot(positions,matRotate)
 
+        return positions
 
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone

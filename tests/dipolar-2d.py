@@ -11,8 +11,8 @@ from bandstructure.lattice import SquareLattice, HoneycombLattice
 # === lattice ===
 #l = SquareLattice()
 l = HoneycombLattice()
-#l.makeFiniteAlongdirection(0,20)
-l.plot(show=True,cutoff=5)
+#l.makeFiniteAlongdirection(0,1)
+#l.plot(show=True,cutoff=5)
 
 # === system ===
 params = Parameters({
@@ -31,12 +31,14 @@ s = DipolarSystem(params)
 
 # === bandstructure ===
 kvecs = l.getKvectorsPath(100, pointlabels=['-X', 'G', 'X'])
-#kvecs = l.getKvectorsBox(60)
-#kvecs = l.getKvectorsZone(60)
+kvecs = l.getKvectorsBox(30)
+#kvecs = l.getKvectorsZone(30)
 
 b = s.solve(kvecs)
-b.plot(show=True)
+#b.plot(show=True)
+
+#print(b.getBerryPhase(2))
 
 # === chern numbers ===
-#cherns = b.getChernNumbers()
-#print(cherns,np.sum(cherns))
+cherns = b.getChernNumbers()
+print(np.round(cherns,3),np.sum(cherns))
