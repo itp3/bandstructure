@@ -138,6 +138,24 @@ class System(metaclass=ABCMeta):
         h = self.getHamiltonian(kvec)
         return np.linalg.eigh(h) + (h,)
 
+    def solveSweep(self, kvecs, param, pi, pf, steps, processes=None):
+        """This is a helper function to solve a system for a parameter range. 'kvec' is the
+        array of k-vectors to solve for (see solve). 'param' is the name of the parameter to
+        loop over. 'pi' and 'pf' are the initial and final values of the parameter. 'steps' is
+        the number of sampling points.
+
+        Usage:
+        >>> for mu, bs in system.solveSweep(kvecs, 'mu', 0, 10, steps=20):
+        >>>     print("Flatness for mu = {mu}: {flatness}".format(mu=mu, flatness=bs.getFlatness())
+        """
+
+        for val in np.linspace(pi, pf, steps):
+            self.params[param] = val
+            self.initialize()
+            bandstructure = self.solve(kvecs, processes)
+
+            yield val, bandstructure
+
 
 def workerSolveSingle(args):
     return args[0].solveSingle(args[1])
