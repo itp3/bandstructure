@@ -10,11 +10,6 @@ class System(metaclass=ABCMeta):
     implement tunnelingRate (and onSite)."""
 
     def __init__(self, params):
-        self.distances = None
-        self.rates = None
-        self.diag = None
-        self.dimH = None
-
         self.params = params
 
         # TODO: get 'default cutoff' from Lattice class
@@ -100,7 +95,7 @@ class System(metaclass=ABCMeta):
         parallel computing can be specified. If processes is set to None, all available CPUs
         will be used. If kvecs is set to None, solve for k=[0, 0]."""
 
-        if self.distances is None:
+        if self.delta is None:
             self.initialize()
 
         if kvecs is None:
