@@ -10,6 +10,7 @@ class System(metaclass=ABCMeta):
     implement tunnelingRate (and onSite)."""
 
     def __init__(self, params):
+        self.delta = None
         self.params = params
 
         # TODO: get 'default cutoff' from Lattice class
