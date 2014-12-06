@@ -248,7 +248,7 @@ class Lattice():
 
             if n < numPoints-1: positions[n-1] = newpos[:-1]
             else: positions[n-1] = newpos
-        positions = np.vstack(positions)
+        positions = np.array([np.vstack(positions)])
 
 
         # save the labels and positions of special points
@@ -257,11 +257,12 @@ class Lattice():
         for p in points:
             idx = np.nanargmin(np.sum((pos-p)**2,axis=-1))
             specialpoints_idx.append(idx)
-            pos[idx] = np.nan
+            pos[:,:,0].flat[idx] = np.nan
+            pos[:,:,1].flat[idx] = np.nan
 
         specialpoints_labels = pointlabels
 
-        return Kpoints([positions], None, [specialpoints_idx], specialpoints_labels)
+        return Kpoints(positions, None, specialpoints_idx, specialpoints_labels)
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.

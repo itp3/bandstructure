@@ -14,13 +14,35 @@ class Kpoints():
     __specialpoints_labels = None
 
     def __init__(self, points, mask = None, specialpoints_idx = None, specialpoints_labels = None):
+
+        # === Process and save input ===
         self.points = points
         self.mask = mask
-
         self.specialpoints_idx = specialpoints_idx
         self.specialpoints_labels = specialpoints_labels
 
-        # TODO np.squeeze inside the constructor, profile all the changes, check whether the dimensions of the input are compatible
+        # === Validate input ===
+        if self.points.shape[-1] != 2:
+            raise Exception("Points have invalid shape.")
+
+        if (not self.mask is None) and np.any(self.points.shape[:-1] != self.mask.shape):
+            raise Exception("The shape of mask is not compatible to points.")
+
+        if (not self.specialpoints_idx is None):
+            try:
+                tmp = self.points[...,0].flat[specialpoints_idx]
+                error = False
+            except Exception as err:
+                err.args = ("The array specialpoints_idx is not compatible to points.",)
+                raise
+
+        if (not self.specialpoints_labels is None) and (not self.specialpoints_idx is None) and \
+            np.any(self.specialpoints_idx.shape != self.specialpoints_labels.shape):
+            raise Exception("The specialpoints_labels and specialpoints_idx differ in shape.")
+
+
+
+        # TODO np.squeeze inside the constructor, profile all the changes
 
     def _resetPoints(self):
         self.__points_masked = None
@@ -84,8 +106,10 @@ class Kpoints():
 
     @specialpoints_idx.setter
     def specialpoints_idx(self, specialpoints_idx):
-        self.__specialpoints_idx = specialpoints_idx
+        if specialpoints_idx is None: self.__specialpoints_idx = None
+        else: self.__specialpoints_idx = np.array(specialpoints_idx)
 
     @specialpoints_labels.setter
     def specialpoints_labels(self,specialpoints_labels):
-        self.__specialpoints_labels = specialpoints_labels
+        if specialpoints_labels is None: specialpoints_labels = None
+        else: self.__specialpoints_labels = np.array(specialpoints_labels)
