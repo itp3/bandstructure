@@ -44,9 +44,6 @@ class Bandstructure:
         Dy = np.empty_like(self.hamiltonian)
         Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/(2*hy)
 
-        # mask that can be applied to the berry flux
-        mask = self.kvecs.mask[:,:,0]
-
         # === loop over the bands ===
         d = self.numBands()
         cherns = []
@@ -75,7 +72,7 @@ class Bandstructure:
 
             # calculate Berry flux
             gamma = 2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
-            gamma[mask] = 0
+            gamma[self.kvecs.mask] = 0
 
             # calculate Chern number
             pointsize = hx*hy

@@ -21,7 +21,6 @@ class Kpoints():
         self.specialpoints_labels = specialpoints_labels
 
         # TODO np.squeeze inside the constructor, profile all the changes, check whether the dimensions of the input are compatible
-        # TODO maskForCoordinates vs. maskForPoints (maybe maskForPoints is enough)
 
     def _resetPoints(self):
         self.__points_masked = None
@@ -29,14 +28,6 @@ class Kpoints():
 
     @property
     def dim(self): # TODO
-        pass
-
-    @property
-    def valid(self): # TODO
-        pass
-
-    @property
-    def validsmall(self): # TODO
         pass
 
     @property
@@ -85,7 +76,7 @@ class Kpoints():
 
     @mask.setter
     def mask(self, mask):
-        if mask is None: self.__mask = np.zeros_like(self.__points,dtype=np.bool)
+        if mask is None: self.__mask = np.zeros(self.__points.shape[:-1],dtype=np.bool)
         else: self.__mask = np.array(mask)
         self.__masksmall = ~binary_dilation(~self.__mask.copy())
 

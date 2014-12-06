@@ -187,7 +187,6 @@ class Lattice():
             si, se = np.where(~positionsMask)
             slice = np.s_[si.min()-2:si.max() + 3, se.min()-2:se.max() + 3]
 
-            positionsMask = np.array([positionsMask, positionsMask]).transpose(1,2,0)
             positions = Kpoints(positions[slice], mask = positionsMask[slice])
 
         return positions
@@ -212,7 +211,7 @@ class Lattice():
         matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
         positions = np.dot(positions,matRotate)
 
-        positionsMask = np.ones_like(positions,dtype=np.bool)
+        positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
         positionsMask[2:-2,2:-2] = False
 
         return Kpoints(positions, mask = positionsMask)

@@ -103,8 +103,10 @@ class System(metaclass=ABCMeta):
         if kvecs is None:
             kvecs = Kpoints([[0, 0]])
 
+        # Mask that yields non-masked values
+        nomask = ~kvecs.masksmall
+
         # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only the non-masked values
-        nomask = ~kvecs.masksmall[:,:,0]
         kvecsR = kvecs.points[nomask]
 
         if processes == 1:
@@ -115,9 +117,9 @@ class System(metaclass=ABCMeta):
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
 
         # Wrap back to a masked array
-        energies = np.zeros(kvecs.shape[:-1] + (self.dimH,),dtype=np.float)*np.nan
-        states = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)*np.nan
-        hamiltonian = np.zeros(kvecs.shape[:-1] + (self.dimH, self.dimH),dtype=np.complex)*np.nan
+        energies = np.ones(nomask.shape + (self.dimH,),dtype=np.float)*np.nan
+        states = np.ones(nomask.shape + (self.dimH, self.dimH),dtype=np.complex)*np.nan
+        hamiltonian = np.ones(nomask.shape + (self.dimH, self.dimH),dtype=np.complex)*np.nan
 
         energies[nomask] = [r[0] for r in results]
         states[nomask] = [r[1] for r in results]
