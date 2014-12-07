@@ -156,8 +156,16 @@ class Lattice():
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
             pos = self.__vecsReciprocal[0]/2
-            positions = Kpoints([np.transpose([np.linspace(-pos[0],pos[0],resolution),\
-                np.linspace(-pos[1],pos[1],resolution)])])
+            positions = np.transpose([np.linspace(-pos[0],pos[0],resolution,endpoint=False),\
+                np.linspace(-pos[1],pos[1],resolution,endpoint=False)])
+
+            step = positions[1]-positions[0]
+            positions = np.array([positions[0]-step]+positions.tolist()+[positions[-1]+step])
+
+            positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
+            positionsMask[1:-1] = False
+
+            positions = Kpoints(positions, mask = positionsMask)
 
         else:
             # === 2D Brillouin zone ===
@@ -185,36 +193,63 @@ class Lattice():
 
             # slice the matrices
             si, se = np.where(~positionsMask)
-            slice = np.s_[si.min()-2:si.max() + 3, se.min()-2:se.max() + 3]
+            slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
 
             positions = Kpoints(positions[slice], mask = positionsMask[slice])
 
         return positions
 
     def getKvectorsBox(self, resolution):
-        l1 = np.linalg.norm(self.__vecsReciprocal[0])
-        l2 = np.linalg.norm(self.__vecsReciprocal[1])
 
-        angle = np.abs(np.arccos(np.dot(self.__vecsReciprocal[0],self.__vecsReciprocal[1])/(l1*l2)))
+        if self.__vecsReciprocal.shape[0] == 0:
+            # === 0D Brillouin box ===
+            positions = Kpoints([[[0,0]]])
 
-        l2*=np.sin(angle)
+        elif self.__vecsReciprocal.shape[0] == 1:
+            # === 1D Brillouin box ===
+            l1 = np.linalg.norm(self.__vecsReciprocal[0])
 
-        x,step = np.linspace(0, l1, resolution,endpoint=False,retstep=True)
-        x = np.array([x[0]-2*step,x[0]-step]+x.tolist()+[x[-1]+step,x[-1]+2*step])
+            x,step = np.linspace(0, l1, resolution,endpoint=False,retstep=True)
+            x = np.array([x[0]-step]+x.tolist()+[x[-1]+step])
+            y = np.zeros_like(x)
 
-        y,step = np.linspace(0, l2, resolution,endpoint=False,retstep=True)
-        y = np.array([y[0]-2*step,y[0]-step]+y.tolist()+[y[-1]+step,y[-1]+2*step])
+            positions=np.transpose([x,y],(1,0))
 
-        positions=np.transpose(np.meshgrid(x, y),(2,1,0))
+            a = -np.arctan2(self.__vecsReciprocal[0,1],self.__vecsReciprocal[0,0])
+            matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
+            positions = np.dot(positions,matRotate)
 
-        a = -np.arctan2(self.__vecsReciprocal[0,1],self.__vecsReciprocal[0,0])
-        matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
-        positions = np.dot(positions,matRotate)
+            positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
+            positionsMask[1:-1] = False
 
-        positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
-        positionsMask[2:-2,2:-2] = False
+            positions = Kpoints(positions, mask = positionsMask)
 
-        return Kpoints(positions, mask = positionsMask)
+        else:
+            # === 2D Brillouin box ===
+            l1 = np.linalg.norm(self.__vecsReciprocal[0])
+            l2 = np.linalg.norm(self.__vecsReciprocal[1])
+
+            angle = np.abs(np.arccos(np.dot(self.__vecsReciprocal[0],self.__vecsReciprocal[1])/(l1*l2)))
+
+            l2*=np.sin(angle)
+
+            x,step = np.linspace(0, l1, resolution,endpoint=False,retstep=True)
+            x = np.array([x[0]-step]+x.tolist()+[x[-1]+step])
+            y,step = np.linspace(0, l2, resolution,endpoint=False,retstep=True)
+            y = np.array([y[0]-step]+y.tolist()+[y[-1]+step])
+
+            positions=np.transpose(np.meshgrid(x, y),(2,1,0))
+
+            a = -np.arctan2(self.__vecsReciprocal[0,1],self.__vecsReciprocal[0,0])
+            matRotate = np.array([[np.cos(a),np.sin(a)],[-np.sin(a),np.cos(a)]]).T
+            positions = np.dot(positions,matRotate)
+
+            positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
+            positionsMask[1:-1,1:-1] = False
+
+            positions = Kpoints(positions, mask = positionsMask)
+
+        return positions
 
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
@@ -243,12 +278,19 @@ class Lattice():
             if stepsize == 0: steps = 1
             else: steps = np.max([np.round(np.linalg.norm(end-start)/stepsize),1])
 
-            newpos = np.transpose([np.linspace(start[0],end[0],steps),\
-                np.linspace(start[1],end[1],steps)])
+            newpos = np.transpose([np.linspace(start[0],end[0],steps,endpoint=False),\
+                np.linspace(start[1],end[1],steps,endpoint=False)])
 
-            if n < numPoints-1: positions[n-1] = newpos[:-1]
-            else: positions[n-1] = newpos
-        positions = np.array([np.vstack(positions)])
+            if n == 1: # first round
+                step = newpos[1]-newpos[0]
+                positions[n-1] = np.array([newpos[0]-step]+newpos.tolist())
+            elif n == numPoints-1: # last round
+                step = newpos[1]-newpos[0]
+                positions[n-1] = np.array(newpos.tolist()+[newpos[-1]+step])
+            else:
+                positions[n-1] = newpos
+
+        positions = np.vstack(positions)
 
 
         # save the labels and positions of special points
@@ -257,12 +299,16 @@ class Lattice():
         for p in points:
             idx = np.nanargmin(np.sum((pos-p)**2,axis=-1))
             specialpoints_idx.append(idx)
-            pos[:,:,0].flat[idx] = np.nan
-            pos[:,:,1].flat[idx] = np.nan
+            pos[:,0][idx] = np.nan
+            pos[:,1][idx] = np.nan
 
         specialpoints_labels = pointlabels
 
-        return Kpoints(positions, None, specialpoints_idx, specialpoints_labels)
+        # mask
+        positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
+        positionsMask[1:-1] = False
+
+        return Kpoints(positions, positionsMask, specialpoints_idx, specialpoints_labels)
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.

@@ -13,40 +13,32 @@ class Bandstructure:
         """Get the number of bands"""
         return self.energies.shape[-1]
 
-    def kSpaceDimension(self):
-        """Returns the dimensionality of the underlying k-space array (1 or 2)."""
-
-        return 2-np.sum(np.array(self.kvecs.shape[:2]) == 1)
-
     def getFlatness(self, band=None, local=False):
         """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specific band
         index is given."""
 
         pass
 
-    def getChernNumbers(self, band=None):
-        """Returns the Chern numbers for all bands, unless a specific band index is given."""
+    def getBerryFlux(self, band=None):
+        """Returns the total Berry flux for all bands, unless a specific band index is given."""
 
-        from scipy.integrate import simps
+        if self.kvecs.dim != 2:
+            raise Exception("Only supports 2D k-space arrays")
 
         # remove mask from kvecs
         kvecsNomask = self.kvecs.points
 
         # === derivatives of the hamiltonians ===
-        # determine step size
-        hx = np.linalg.norm(kvecsNomask[1,0,:]-kvecsNomask[0,0,:])
-        hy = np.linalg.norm(kvecsNomask[0,1,:]-kvecsNomask[0,0,:])
-
         # determine derivatives
         Dx = np.empty_like(self.hamiltonian)
-        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/(2*hx)
+        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/(2*self.kvecs.dx)
 
         Dy = np.empty_like(self.hamiltonian)
-        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/(2*hy)
+        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/(2*self.kvecs.dy)
 
         # === loop over the bands ===
         d = self.numBands()
-        cherns = []
+        fluxes = []
 
         if band is None: bands = range(d)
         else: bands = [band]
@@ -74,32 +66,30 @@ class Bandstructure:
             gamma = 2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
             gamma[self.kvecs.mask] = 0
 
-            # calculate Chern number
-            pointsize = hx*hy
-            chern = np.sum(gamma)*pointsize/(2*np.pi)
+            # calculate total Berry flux
+            pointsize = self.kvecs.dx*self.kvecs.dy
+            flux = np.sum(gamma)*pointsize
 
-            cherns.append(chern)
+            fluxes.append(flux)
 
-        return np.array(cherns)
+        return np.array(fluxes)
 
     def getBerryPhase(self, band=0):
         """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
         band index is given."""
 
-        if self.kSpaceDimension() != 1:
+        if self.kvecs.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
-        states = np.squeeze(self.states)
-        kvecs = np.squeeze(self.kvecs.points_maskedsmall)
-
-        psi = states[:, :, band]
+        kvecs = self.kvecs.points_maskedsmall
+        psi = self.states[..., band]
 
         # Use a smooth gauge for psi=|u_k> by choosing the first entry of |u_k> to be real
         gauge = np.exp(-1j * np.angle(psi[:, 0]))
         psi = psi * gauge[:, None]
 
         # Calculate numerical derivative d/dk |u_k>
-        dk = np.gradient(kvecs[:, 0])  # TODO: calculate along any path, not just k_x
+        dk = np.gradient(self.kvecs.length)
         dpsi = np.zeros(psi.shape, dtype=np.complex)
         for k in range(psi.shape[1]):
             dpsi[:, k] = np.gradient(psi[:, k])
@@ -107,6 +97,7 @@ class Bandstructure:
 
         # Compute <u_k| i * d/dk |u_k>
         berry = 1j * np.sum(psi.conj() * deriv, axis=1)
+        berry[self.kvecs.mask] = 0
 
         # Integrate over path
         return np.sum(berry * dk).real
@@ -116,19 +107,13 @@ class Bandstructure:
 
         import matplotlib.pyplot as plt
 
-        if self.kSpaceDimension() == 1:
-            points = np.squeeze(self.kvecs.points_masked)
-            specialpoints_idx = np.squeeze(self.kvecs.specialpoints_idx)
-            energies = np.squeeze(self.energies)
+        if self.kvecs.dim == 1:
+            plt.plot(self.kvecs.length, self.energies)
 
-            # length of the path
-            dk = np.append([[0, 0]], np.diff(points, axis=0), axis=0)
-            length = np.cumsum(np.sqrt(np.sum(dk**2, axis=1)))
-
-            plt.plot(length, energies)
-            specialpoints = length[specialpoints_idx]
-            plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
-            plt.xlim(min(specialpoints),max(specialpoints))
+            if self.kvecs.specialpoints_idx is not None:
+                specialpoints = self.kvecs.length[self.kvecs.specialpoints_idx]
+                plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
+                plt.xlim(min(specialpoints),max(specialpoints))
         else:
             from mpl_toolkits.mplot3d import Axes3D  # noqa
             from matplotlib import cm
@@ -136,11 +121,11 @@ class Bandstructure:
             ax = fig.add_subplot(111, projection='3d')
 
             for band in range(self.energies.shape[-1]):
-                energy = self.energies[:, :, band].copy()
+                energy = self.energies[...,band].copy()
                 energy[np.isnan(energy)] = np.nanmin(energy)
 
-                ax.plot_surface(self.kvecs.points_masked[:, :, 0],
-                                self.kvecs.points_masked[:, :, 1],
+                ax.plot_surface(self.kvecs.points_masked[..., 0],
+                                self.kvecs.points_masked[..., 1],
                                 energy,
                                 cstride=1,
                                 rstride=1,
