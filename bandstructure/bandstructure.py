@@ -77,8 +77,10 @@ class Bandstructure:
         d = self.numBands()
         fluxes = []
 
-        if band is None: bands = range(d)
-        else: bands = [band]
+        if band is None:
+            bands = range(d)
+        else:
+            bands = [band]
 
         for n in bands:
             #nth eigenvector
@@ -119,8 +121,10 @@ class Bandstructure:
         d = self.numBands()
         phases = []
 
-        if band is None: bands = range(d)
-        else: bands = [band]
+        if band is None:
+            bands = range(d)
+        else:
+            bands = [band]
 
         for n in bands:
             psi = self.states[..., n]
