@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage import binary_dilation
+
 
 class Bandstructure:
     def __init__(self, params, kvecs, energies, states, hamiltonian):
@@ -11,6 +11,7 @@ class Bandstructure:
 
     def numBands(self):
         """Get the number of bands"""
+
         return self.energies.shape[-1]
 
     def getFlatness(self, band=None, local=False):
@@ -24,9 +25,6 @@ class Bandstructure:
 
         if self.kvecs.dim != 2:
             raise Exception("Only supports 2D k-space arrays")
-
-        # remove mask from kvecs
-        kvecsNomask = self.kvecs.points
 
         # === derivatives of the hamiltonians ===
         # determine derivatives
@@ -113,7 +111,7 @@ class Bandstructure:
             if self.kvecs.specialpoints_idx is not None:
                 specialpoints = self.kvecs.length[self.kvecs.specialpoints_idx]
                 plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
-                plt.xlim(min(specialpoints),max(specialpoints))
+                plt.xlim(min(specialpoints), max(specialpoints))
         else:
             from mpl_toolkits.mplot3d import Axes3D  # noqa
             from matplotlib import cm
@@ -121,7 +119,7 @@ class Bandstructure:
             ax = fig.add_subplot(111, projection='3d')
 
             for band in range(self.energies.shape[-1]):
-                energy = self.energies[...,band].copy()
+                energy = self.energies[..., band].copy()
                 energy[np.isnan(energy)] = np.nanmin(energy)
 
                 ax.plot_surface(self.kvecs.points_masked[..., 0],
