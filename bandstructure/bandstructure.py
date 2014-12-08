@@ -66,12 +66,12 @@ class Bandstructure:
             raise Exception("Only supports 2D k-space arrays")
 
         # === derivatives of the hamiltonians ===
-        # determine derivatives
+        # determine derivatives *dx resp. *dy
         Dx = np.empty_like(self.hamiltonian)
-        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/(2*self.kvecs.dx)
+        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/2
 
         Dy = np.empty_like(self.hamiltonian)
-        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/(2*self.kvecs.dy)
+        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/2
 
         # === loop over the bands ===
         d = self.numBands()
@@ -103,40 +103,44 @@ class Bandstructure:
             gamma = 2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
             gamma[self.kvecs.mask] = 0
 
-            # calculate total Berry flux
-            pointsize = self.kvecs.dx*self.kvecs.dy
-            flux = np.sum(gamma)*pointsize
+            # calculate total Berry flux and save the result
+            fluxes.append(np.sum(gamma))
 
-            fluxes.append(flux)
+        return np.squeeze(fluxes)
 
-        return np.array(fluxes)
-
-    def getBerryPhase(self, band=0):
-        """Returns the Berry phase along the underlying 1D path for the specified band."""
+    def getBerryPhase(self, band=None):
+        """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
+        band index is given."""
 
         if self.kvecs.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
-        psi = self.states[..., band]
+        # === loop over the bands ===
+        d = self.numBands()
+        phases = []
 
-        # Use a smooth gauge for psi=|u_k> by choosing the first entry of |u_k> to be real
-        gauge = np.exp(-1j * np.angle(psi[:, 0]))
-        psi = psi * gauge[:, None]
+        if band is None: bands = range(d)
+        else: bands = [band]
 
-        # Calculate numerical derivative d/dk |u_k>
-        dk = np.gradient(self.kvecs.length)
-        dpsi = np.zeros(psi.shape, dtype=np.complex)
-        for k in range(psi.shape[1]):
-            dpsi[:, k] = np.gradient(psi[:, k])
-        deriv = dpsi / dk[:, None]
+        for n in bands:
+            psi = self.states[..., n]
 
-        # Compute <u_k| i * d/dk |u_k>
-        berry = 1j * np.sum(psi.conj() * deriv, axis=1)
+            # Use a smooth gauge for psi=|u_k> by choosing the first entry of |u_k> to be real
+            gauge = np.exp(-1j * np.angle(psi[:, 0]))
+            psi = psi * gauge[:, None]
 
-        berry[self.kvecs.mask] = 0
+            # Calculate numerical derivative d/dk |u_k> *dk
+            deriv = np.empty_like(psi)
+            deriv[1:-1,:] = (psi[2:]-psi[:-2])/2
 
-        # Integrate over path
-        return np.sum(berry * dk).real
+            # Compute <u_k| i * d/dk |u_k>
+            berry = 1j * np.sum(psi.conj() * deriv, axis=1)
+            berry[self.kvecs.mask] = 0
+
+            # Integrate over path and save the result
+            phases.append(np.sum(berry).real)
+
+        return np.squeeze(phases)
 
     def plot(self, filename=None, show=True):
         """Plot the band structure."""
