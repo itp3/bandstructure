@@ -377,7 +377,7 @@ class Lattice():
                 # append the sum of shifts to the array of positions
                 positions.append(shiftedpos)
 
-        return np.array(positions)
+        return np.array(positions,dtype=np.float)
 
     def getGeometry(self, cutoff):
         """Generate all positions from the lattice vectors using all the basis vectors.
