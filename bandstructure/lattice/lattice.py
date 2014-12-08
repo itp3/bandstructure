@@ -34,7 +34,7 @@ class Lattice():
         # === standardize the lattice vectors ===
         if self.getDimensionality() >= 1:
             vec1 = self.__vecsReciprocal[0]
-            if np.vdot(vec1,[1,0]) < 0: vec2 *= -1
+            if np.vdot(vec1,[1,0]) < 0: vec1 *= -1
 
         if self.getDimensionality() >= 2:
             vec2 = self.__vecsReciprocal[1]
@@ -97,7 +97,7 @@ class Lattice():
     def addSpecialPoint(self,label,pos):
         """Add a special point."""
 
-        self.__specialPoints['label'] = pos
+        self.__specialPoints[label] = pos
 
     def addLatticevector(self,vector):
         """Add a lattice vector and calculate the reciprocal vectors."""
@@ -156,7 +156,7 @@ class Lattice():
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
             pos = self.__vecsReciprocal[0]/2
-            positions = np.transpose([np.linspace(-pos[0],pos[0],resolution,endpoint=False),\
+            positions = np.transpose([np.linspace(-pos[0],pos[0],resolution,endpoint=False),
                 np.linspace(-pos[1],pos[1],resolution,endpoint=False)])
 
             step = positions[1]-positions[0]
@@ -180,7 +180,7 @@ class Lattice():
             radius = np.max(np.sqrt(np.sum(self.__vecsReciprocal**2,axis=-1)))
 
             # generate a matrix [IdxX, IdxY, Coord] that stores the positions inside the brillouinzone
-            positions=np.mgrid[-radius:radius:2j*resolution,\
+            positions=np.mgrid[-radius:radius:2j*resolution,
                 -radius:radius:2j*resolution,].transpose(1,2,0)
 
             # calculate the distances of the matrix points from the reciprocal positions
@@ -254,13 +254,13 @@ class Lattice():
     def getKvectorsPath(self, resolution, pointlabels=None, points=None):
         """Calculate an array that contains the kvectors of a path through the Brillouin zone
 
-        kvectors, length = getKvectorsPath(resolution, pointsdict=["G","X"])
+        kvectors, length = getKvectorsPath(resolution, pointlabels=["G","X"])
         kvectors[idxPosition, idxCoordinate]"""
 
-        if pointlabels != None:
+        if pointlabels is not None:
             specialPoints = self.getSpecialPoints()
             points = np.array([specialPoints[p] for p in pointlabels])
-        elif points != None:
+        elif points is not None:
             points = np.array(points)
         else:
             points = np.array(["G","G"])
@@ -278,7 +278,7 @@ class Lattice():
             if stepsize == 0: steps = 1
             else: steps = np.max([np.round(np.linalg.norm(end-start)/stepsize),1])
 
-            newpos = np.transpose([np.linspace(start[0],end[0],steps,endpoint=False),\
+            newpos = np.transpose([np.linspace(start[0],end[0],steps,endpoint=False),
                 np.linspace(start[1],end[1],steps,endpoint=False)])
 
             if n == 1: # first round
@@ -333,7 +333,7 @@ class Lattice():
                 shiftedpos1 = shiftidx1*self.__vecsLattice[1]
 
                 # substract the other lattice vector to be as central as possible inside the cutoff region
-                shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__vecsLattice[0])/\
+                shiftedpos1 -= np.round(np.vdot(shiftedpos1,self.__vecsLattice[0])/
                     np.linalg.norm(self.__vecsLattice[0])**2 )*self.__vecsLattice[0]
 
                 if shiftidx1 < 0: shiftidx1 -= 1
@@ -402,9 +402,6 @@ class Lattice():
         """Get array of basis vectors"""
 
         return self.__vecsBasis
-
-    def getVecsLattice(self):
-        return self.__vecsLattice
 
     def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
@@ -497,7 +494,7 @@ class Lattice():
 
         for p,b in zip(self.getGeometry(cutoff),self.__vecsBasis):
             line, = plt.plot(p[:,0],p[:,1], 'o',ms=4)
-            fig.gca().add_artist(plt.Circle(b,cutoff, fill = False ,\
+            fig.gca().add_artist(plt.Circle(b,cutoff, fill = False ,
                 ec=line.get_color(),alpha=0.5,lw=1))
             plt.plot(b[0],b[1], 'kx',ms=7,mew=1)
         plt.axes().set_aspect('equal')
