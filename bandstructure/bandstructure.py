@@ -21,9 +21,11 @@ class Bandstructure:
         min_k(E_2) - max_k(E_1)."""
 
         nb = self.numBands()
+
         if nb == 1:
             raise Exception("The flatness ratio is not defined for a single band.")
 
+        # === loop over the bands ===
         if band is None:
             bands = range(nb)
         else:
@@ -57,7 +59,7 @@ class Bandstructure:
 
             ratios.append(minGap / bandwidth)
 
-        return ratios
+        return np.squeeze(ratios)
 
     def getBerryFlux(self, band=None):
         """Returns the total Berry flux for all bands, unless a specific band index is given."""
@@ -74,24 +76,24 @@ class Bandstructure:
         Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/2
 
         # === loop over the bands ===
-        d = self.numBands()
-        fluxes = []
+        nb = self.numBands()
 
         if band is None:
-            bands = range(d)
+            bands = range(nb)
         else:
             bands = [band]
 
+        fluxes = []
         for n in bands:
             #nth eigenvector
             vecn = self.states[:,:,:,n]
             #other eigenvectors
-            vecm = self.states[:,:,:,np.arange(d)[np.arange(d) != n]]
+            vecm = self.states[:,:,:,np.arange(nb)[np.arange(nb) != n]]
 
             #nth eigenenergy
             en = self.energies[:,:,n]
             #other eigenenergies
-            em = self.energies[:,:,np.arange(d)[np.arange(d) != n]]
+            em = self.energies[:,:,np.arange(nb)[np.arange(nb) != n]]
             ediff = (em[:,:,:] - en[:,:,None])**2
 
             # put everything together
@@ -118,14 +120,14 @@ class Bandstructure:
             raise Exception("Only supports 1D k-space arrays")
 
         # === loop over the bands ===
-        d = self.numBands()
-        phases = []
+        nb = self.numBands()
 
         if band is None:
-            bands = range(d)
+            bands = range(nb)
         else:
             bands = [band]
 
+        phases = []
         for n in bands:
             psi = self.states[..., n]
 
