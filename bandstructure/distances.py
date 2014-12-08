@@ -6,13 +6,18 @@ class Distances():
     __tol = 1e-16
     __differentdistances = None
     __absdistances = None
+    __mask = None
 
     __withShifts = None
     __noShifts = None
 
     def __init__(self, withShifts, noShifts, mask):
-        self.__withShifts = np.ma.array(withShifts,mask=mask)
-        self.__noShifts = np.ma.array(noShifts,mask=mask)
+        self.__withShifts = withShifts
+        self.__withShifts[mask] = np.nan
+        self.__noShifts = noShifts
+        self.__noShifts[mask] = np.nan
+
+        self.__mask = mask
 
     @property
     def withShifts(self):
@@ -24,7 +29,7 @@ class Distances():
 
     @property
     def mask(self):
-        return self.__withShifts.mask
+        return self.__mask
 
     @property
     def absdistances(self):
