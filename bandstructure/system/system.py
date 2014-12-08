@@ -118,6 +118,7 @@ class System(metaclass=ABCMeta):
         else:
             pool = mp.Pool(processes)
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
+            pool.close()
 
         # Wrap back to a masked array
         energies = np.ones(nomask.shape + (self.dimH,), dtype=np.float)*np.nan
