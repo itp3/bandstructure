@@ -25,7 +25,6 @@ class Bandstructure:
         if nb == 1:
             raise Exception("The flatness ratio is not defined for a single band.")
 
-        # === loop over the bands ===
         if band is None:
             bands = range(nb)
         else:
@@ -75,7 +74,6 @@ class Bandstructure:
         Dy = np.empty_like(self.hamiltonian)
         Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/2
 
-        # === loop over the bands ===
         nb = self.numBands()
 
         if band is None:
@@ -119,7 +117,6 @@ class Bandstructure:
         if self.kvecs.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
-        # === loop over the bands ===
         nb = self.numBands()
 
         if band is None:
@@ -135,11 +132,11 @@ class Bandstructure:
             gauge = np.exp(-1j * np.angle(psi[:, 0]))
             psi = psi * gauge[:, None]
 
-            # Calculate numerical derivative d/dk |u_k> *dk
+            # Calculate numerical derivative d/dk |u_k> dk
             deriv = np.empty_like(psi)
             deriv[1:-1,:] = (psi[2:]-psi[:-2])/2
 
-            # Compute <u_k| i * d/dk |u_k>
+            # Compute <u_k| i * d/dk |u_k> dk
             berry = 1j * np.sum(psi.conj() * deriv, axis=1)
             berry[self.kvecs.mask] = 0
 

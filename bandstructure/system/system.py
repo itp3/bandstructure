@@ -108,7 +108,8 @@ class System(metaclass=ABCMeta):
         # Mask that yields non-masked values
         nomask = ~kvecs.masksmall
 
-        # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only the non-masked values
+        # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only
+        # the non-masked values
         kvecsR = kvecs.points[nomask]
 
         if processes == 1:
@@ -119,9 +120,9 @@ class System(metaclass=ABCMeta):
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
 
         # Wrap back to a masked array
-        energies = np.ones(nomask.shape + (self.dimH,),dtype=np.float)*np.nan
-        states = np.ones(nomask.shape + (self.dimH, self.dimH),dtype=np.complex)*np.nan
-        hamiltonian = np.ones(nomask.shape + (self.dimH, self.dimH),dtype=np.complex)*np.nan
+        energies = np.ones(nomask.shape + (self.dimH,), dtype=np.float)*np.nan
+        states = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
+        hamiltonian = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
 
         energies[nomask] = [r[0] for r in results]
         states[nomask] = [r[1] for r in results]
@@ -153,6 +154,33 @@ class System(metaclass=ABCMeta):
             bandstructure = self.solve(kvecs, processes)
 
             yield val, bandstructure
+
+    def optimizeFlatness(self, kvecs, params, band=0, monitor=False, processes=None):
+        """Maximize the flatness of a certain band with respect to the given parameters."""
+
+        # initial parameter values
+        x0 = [self.get(p) for p in params]
+
+        def invFlatness(x):
+            for param, val in zip(params, x):
+                self.params[param] = val
+
+            self.initialize()
+            bs = self.solve(kvecs, processes=processes)
+
+            flatness = bs.getFlatness(band)
+            if monitor:
+                paramStr = ", ".join("{p} = {v}".format(p=p, v=v) for p, v in zip(params, x))
+                print("flatness = {f} for {p}".format(f=flatness, p=paramStr))
+
+            return -flatness
+
+        from scipy.optimize import minimize
+
+        res = minimize(invFlatness, x0, method='Nelder-Mead',
+                       options={}, tol=0.001)
+
+        return res.x, -res.fun
 
 
 def workerSolveSingle(args):
