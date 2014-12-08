@@ -16,7 +16,9 @@ class Bandstructure:
 
     def getFlatness(self, band=None, local=False):
         """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specific band
-        index is given."""
+        index is given. If local is set to true, the flatness is calculated with the value for the
+        gap replaced by a local definition for the minimal gap: min_k(E_2 - E_1), instead of
+        min_k(E_2) - max_k(E_1)."""
 
         nb = self.numBands()
         if nb == 1:
@@ -30,13 +32,24 @@ class Bandstructure:
         ratios = []
         for b in bands:
             gaps = []
+
+            enThis = self.energies[..., b]
+
             if b >= 1:  # not the lowest band
-                bBottom = b - 1
-                gaps.append(np.nanmin(self.energies[..., b] - self.energies[..., bBottom]))
+                enBottom = self.energies[..., b - 1]
+
+                if local:
+                    gaps.append(np.nanmin(enThis - enBottom))
+                else:
+                    gaps.append(np.nanmin(enThis) - np.nanmax(enBottom))
 
             if b < nb - 1:  # not the highest band
-                bTop = b + 1
-                gaps.append(np.nanmin(self.energies[..., bTop] - self.energies[..., b]))
+                enTop = self.energies[..., b + 1]
+
+                if local:
+                    gaps.append(np.nanmin(enTop - enThis))
+                else:
+                    gaps.append(np.nanmin(enTop) - np.nanmax(enThis))
 
             minGap = np.nanmin(gaps)
 
