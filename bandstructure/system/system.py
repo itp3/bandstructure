@@ -67,7 +67,7 @@ class System(metaclass=ABCMeta):
 
         self.diag = self.onSite()
 
-        nSublattices = self.delta.shape[0]
+        nSublattices = self.rates.shape[0]
         nOrbitals = self.rates.shape[4]
 
         self.dimH = nOrbitals * nSublattices
@@ -77,14 +77,12 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-        dotproduct = np.dot(self.delta, kvec)
-        expf = np.exp(1j * dotproduct)
+        expf = np.exp(1j * np.dot(self.distances.noShifts, kvec))
 
         # The Hamiltonian is given by the sum over all positions:
-        product = expf[:, :, :, None, None] * self.rates
+        product = expf[None, None, :, None, None] * self.rates
         product[self.distances.mask] = 0
-        #product[np.isnan(product)] = 0 # product will be nan if a masked distance is used
-        h = (product).sum(2)
+        h = (product).sum(axis=2)
 
         # Reshape Hamiltonian
         h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))

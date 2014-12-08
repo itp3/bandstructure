@@ -15,8 +15,6 @@ class Distances():
         self.__withShifts = withShifts
         self.__withShifts[mask] = np.nan
         self.__noShifts = noShifts
-        self.__noShifts[mask] = np.nan
-
         self.__mask = mask
 
     @property

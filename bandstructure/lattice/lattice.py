@@ -533,12 +533,8 @@ class Lattice():
         # array of central positions [Sub, Coord] that will be repeated to create the matrix matDeltaR
         positionsCentral = shifts
 
-        # array of the positions with no shifts
-        positionsNoshifts = np.tile(positions, (numSubs,1,1))
-        matPositionsNoshifts = np.tile(positionsNoshifts, (numSubs,1,1,1))
-
         # array of all positions [Sub, Link, Coord] that will be repeated to create the matrix matDeltaR
-        positionsAll = positionsNoshifts + positionsCentral[:,None]
+        positionsAll = np.tile(positions, (numSubs,1,1)) + positionsCentral[:,None]
 
         # creation of the matrix matDeltaR [Sub1, Sub2, Link, Coord]
         matPositionsCentral = np.tile(positionsCentral, (numLinks,numSubs, 1,1)).transpose(2,1,0,3)
@@ -551,7 +547,7 @@ class Lattice():
         unnecessaryLinks = np.all(matDeltaRMask,axis=(0,1))
 
         return Distances(matDeltaR[:,:,~unnecessaryLinks],
-            matPositionsNoshifts[:,:,~unnecessaryLinks],
+            positions[~unnecessaryLinks],
             matDeltaRMask[:,:,~unnecessaryLinks])
 
     def __str__(self):
