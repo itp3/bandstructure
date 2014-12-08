@@ -18,7 +18,33 @@ class Bandstructure:
         """Returns the flatness ratio (bandgap / bandwidth) for all bands, unless a specific band
         index is given."""
 
-        pass
+        nb = self.numBands()
+        if nb == 1:
+            raise Exception("The flatness ratio is not defined for a single band.")
+
+        if band is None:
+            bands = range(nb)
+        else:
+            bands = [band]
+
+        ratios = []
+        for b in bands:
+            gaps = []
+            if b >= 1:  # not the lowest band
+                bBottom = b - 1
+                gaps.append(np.nanmin(self.energies[..., b] - self.energies[..., bBottom]))
+
+            if b < nb - 1:  # not the highest band
+                bTop = b + 1
+                gaps.append(np.nanmin(self.energies[..., bTop] - self.energies[..., b]))
+
+            minGap = np.nanmin(gaps)
+
+            bandwidth = np.nanmax(self.energies[..., b]) - np.nanmin(self.energies[..., b])
+
+            ratios.append(minGap / bandwidth)
+
+        return ratios
 
     def getBerryFlux(self, band=None):
         """Returns the total Berry flux for all bands, unless a specific band index is given."""
@@ -73,13 +99,11 @@ class Bandstructure:
         return np.array(fluxes)
 
     def getBerryPhase(self, band=0):
-        """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
-        band index is given."""
+        """Returns the Berry phase along the underlying 1D path for the specified band."""
 
         if self.kvecs.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
-        kvecs = self.kvecs.points_maskedsmall
         psi = self.states[..., band]
 
         # Use a smooth gauge for psi=|u_k> by choosing the first entry of |u_k> to be real
@@ -95,6 +119,7 @@ class Bandstructure:
 
         # Compute <u_k| i * d/dk |u_k>
         berry = 1j * np.sum(psi.conj() * deriv, axis=1)
+
         berry[self.kvecs.mask] = 0
 
         # Integrate over path
