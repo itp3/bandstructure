@@ -154,12 +154,16 @@ class Bandstructure:
         import matplotlib.pyplot as plt
 
         if self.kvecs.dim == 1:
-            plt.plot(self.kvecs.length, self.energies)
+            for b, energy in enumerate(self.energies.T):
+                plt.plot(self.kvecs.length, energy, label = "%s"%(b))
 
             if self.kvecs.specialpoints_idx is not None:
                 specialpoints = self.kvecs.length[self.kvecs.specialpoints_idx]
                 plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
                 plt.xlim(min(specialpoints), max(specialpoints))
+
+            plt.legend()
+
         else:
             from mpl_toolkits.mplot3d import Axes3D  # noqa
             from matplotlib import cm
