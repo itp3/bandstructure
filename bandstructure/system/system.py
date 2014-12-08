@@ -162,24 +162,28 @@ class System(metaclass=ABCMeta):
         # initial parameter values
         x0 = [self.get(p) for p in params]
 
-        def invFlatness(x):
+        def helpFlatness(x):
             for param, val in zip(params, x):
                 self.params[param] = val
 
             self.initialize()
             bs = self.solve(kvecs, processes=processes)
 
-            flatness = bs.getFlatness(band)
-            if monitor:
-                paramStr = ", ".join("{p} = {v}".format(p=p, v=v) for p, v in zip(params, x))
-                print("flatness = {f} for {p}".format(f=flatness, p=paramStr))
+            return -bs.getFlatness(band)
 
-            return -flatness
+        def showFlatness(x):
+            flatness = -helpFlatness(x)
+            paramStr = ", ".join("{p} = {v}".format(p=p, v=v) for p, v in zip(params, x))
+            print("flatness = {f} for {p}".format(f=flatness, p=paramStr))
 
         from scipy.optimize import minimize
 
-        res = minimize(invFlatness, x0, method='Nelder-Mead',
-                       options={}, tol=0.001)
+        cb = None
+        if monitor:
+            cb = showFlatness
+
+        res = minimize(helpFlatness, x0, method='Nelder-Mead',
+                       options={}, tol=0.001, callback=cb)
 
         return res.x, -res.fun
 
