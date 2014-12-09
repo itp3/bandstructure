@@ -20,16 +20,11 @@ class Parameters(dict):
     def showParams(self):
         """Print a list of all parameters in this system"""
 
-        for name, value in self.items():
+        for name, value in sorted(self.items()):
             print("{name} = {value}".format(name=name, value=value))
 
-    def saveJSON(self, filename):
-        """Save all parameters to a file in JSON format."""
-
-        # Allow for filenames like parameters_{param1}_{param2}.json",
-        # where param1 and param2 will be replaced by the parameter
-        # values
-        filename = filename.format(**self)
+    def getJSON(self):
+        """Serialize the Parameter object to JSON."""
 
         import json
         from .lattice import Lattice
@@ -44,6 +39,24 @@ class Parameters(dict):
 
                 return super().default(obj)
 
+        return json.dumps(self, cls=LatticeEncoder, indent=4, sort_keys=True)
+
+    def saveJSON(self, filename):
+        """Save all parameters to a file in JSON format."""
+
+        # Allow for filenames like parameters_{param1}_{param2}.json",
+        # where param1 and param2 will be replaced by the parameter
+        # values
+        filename = filename.format(**self)
+
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(self, f, cls=LatticeEncoder, indent=4)
+            f.write(self.getJSON())
             f.write("\n")
+
+    def getHash(self):
+        """Return an md5 hash for this set of parameters"""
+
+        json = self.getJSON()
+
+        import hashlib
+        return hashlib.md5(json.encode()).hexdigest()

@@ -13,6 +13,7 @@ class System(metaclass=ABCMeta):
     def __init__(self, params):
         self.delta = None
         self.params = params
+        self.hashOnInit = None
 
         # TODO: get 'default cutoff' from Lattice class
         # lattice.getNearestNeighborCutoff()
@@ -72,6 +73,9 @@ class System(metaclass=ABCMeta):
 
         self.dimH = nOrbitals * nSublattices
 
+        # Save parameter hash to compare when solving
+        self.hashOnInit = self.params.getHash()
+
     def getHamiltonian(self, kvec):
         """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
         onSite energies."""
@@ -100,7 +104,11 @@ class System(metaclass=ABCMeta):
         will be used. If kvecs is set to None, solve for k=[0, 0]."""
 
         if self.delta is None:
+            # First run
             self.initialize()
+        else:
+            if self.params.getHash() != self.hashOnInit:
+                print("Warning: Parameters have changed since last call of System.initialize")
 
         if kvecs is None:
             kvecs = Kpoints([[0, 0]])
@@ -188,6 +196,7 @@ class System(metaclass=ABCMeta):
         # Set optimized parameters
         for param, val in zip(params, res.x):
             self.params[param] = val
+        self.initialize()
 
         return res.x, -res.fun
 
