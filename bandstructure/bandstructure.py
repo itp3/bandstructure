@@ -134,7 +134,7 @@ class Bandstructure:
 
             # Calculate numerical derivative d/dk |u_k> dk
             deriv = np.empty_like(psi)
-            deriv[1:-1,:] = (psi[2:]-psi[:-2])/2
+            deriv[1:-1, :] = (psi[2:]-psi[:-2])/2
 
             # Compute <u_k| i * d/dk |u_k> dk
             berry = 1j * np.sum(psi.conj() * deriv, axis=1)
@@ -145,21 +145,22 @@ class Bandstructure:
 
         return np.squeeze(phases)
 
-    def plot(self, filename=None, show=True):
+    def plot(self, filename=None, show=True, legend=True):
         """Plot the band structure."""
 
         import matplotlib.pyplot as plt
 
         if self.kvecs.dim == 1:
             for b, energy in enumerate(self.energies.T):
-                plt.plot(self.kvecs.length, energy, label = "%s"%(b))
+                plt.plot(self.kvecs.length, energy, label=str(b))
 
             if self.kvecs.specialpoints_idx is not None:
                 specialpoints = self.kvecs.length[self.kvecs.specialpoints_idx]
                 plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
                 plt.xlim(min(specialpoints), max(specialpoints))
 
-            plt.legend()
+            if legend:
+                plt.legend()
 
         else:
             from mpl_toolkits.mplot3d import Axes3D  # noqa

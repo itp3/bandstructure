@@ -30,6 +30,13 @@ Parameters
     :undoc-members:
     :show-inheritance:
 
+Kpoints
+-------
+
+.. autoclass:: bandstructure.Kpoints
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 lattice package
 ===============
@@ -54,6 +61,14 @@ HoneycombLattice
 ----------------
 
 .. autoclass:: bandstructure.lattice.HoneycombLattice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+KagomeLattice
+-------------
+
+.. autoclass:: bandstructure.lattice.KagomeLattice
     :members:
     :undoc-members:
     :show-inheritance:
