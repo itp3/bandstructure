@@ -73,6 +73,14 @@ KagomeLattice
     :undoc-members:
     :show-inheritance:
 
+RubyLattice
+-----------
+
+.. autoclass:: bandstructure.lattice.RubyLattice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 RegularChain
 ------------
 
