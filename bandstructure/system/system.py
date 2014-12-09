@@ -164,7 +164,7 @@ class System(metaclass=ABCMeta):
 
             yield val, bandstructure
 
-    def optimizeFlatness(self, kvecs, params, band=0, monitor=False, processes=None):
+    def optimizeFlatness(self, kvecs, params, band=0, monitor=False, processes=None, maxiter=None):
         """Maximize the flatness of a certain band with respect to the given parameters."""
 
         # initial parameter values
@@ -191,7 +191,7 @@ class System(metaclass=ABCMeta):
             cb = showFlatness
 
         res = minimize(helpFlatness, x0, method='Nelder-Mead',
-                       options={}, tol=0.01, callback=cb)
+                       options={'maxiter': maxiter}, tol=0.01, callback=cb)
 
         # Set optimized parameters
         for param, val in zip(params, res.x):
