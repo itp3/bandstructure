@@ -183,7 +183,11 @@ class System(metaclass=ABCMeta):
             cb = showFlatness
 
         res = minimize(helpFlatness, x0, method='Nelder-Mead',
-                       options={}, tol=0.001, callback=cb)
+                       options={}, tol=0.01, callback=cb)
+
+        # Set optimized parameters
+        for param, val in zip(params, res.x):
+            self.params[param] = val
 
         return res.x, -res.fun
 
