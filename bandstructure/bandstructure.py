@@ -187,3 +187,15 @@ class Bandstructure:
 
         if show:
             plt.show()
+
+    def plotState(self, kIndex=0, band=0, orbital=None):
+        """Plot the probability density corresponding to the eigenstate |u_{k,nu}> where the lattice
+        momentum k = kvecs[kIndex] and the band index nu = band. A specific orbital can be given.
+        If orbital is set to None, a sum over all orbitals is implied."""
+
+        pass
+
+    def plotBerryCurvature(self, band=0):
+        """Plot the Berry curvature of a specific band in the 2D Brillouin zone."""
+
+        pass
