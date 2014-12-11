@@ -63,7 +63,7 @@ class Bandstructure:
     def getBerryFlux(self, band=None):
         """Returns the total Berry flux for all bands, unless a specific band index is given."""
 
-        if self.kvecs.dim != 2:
+        if self.kvecs is None or self.kvecs.dim != 2:
             raise Exception("Only supports 2D k-space arrays")
 
         # === derivatives of the hamiltonians ===
@@ -114,7 +114,7 @@ class Bandstructure:
         """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
         band index is given."""
 
-        if self.kvecs.dim != 1:
+        if self.kvecs is None or self.kvecs.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
         nb = self.numBands()
@@ -150,7 +150,12 @@ class Bandstructure:
 
         import matplotlib.pyplot as plt
 
-        if self.kvecs.dim == 1:
+        if self.kvecs is None:
+            # Zero-dimensional system
+
+            plt.plot(self.energies[0], linewidth=0, marker='+')
+
+        elif self.kvecs.dim == 1:
             for b, energy in enumerate(self.energies.T):
                 plt.plot(self.kvecs.length, energy, label=str(b))
 

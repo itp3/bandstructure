@@ -97,7 +97,7 @@ class System(metaclass=ABCMeta):
 
         return h
 
-    def solve(self, kvecs, processes=None):
+    def solve(self, kvecs=None, processes=None):
         """Solve the system for a given set of vectors in the Brillouin zone. kvecs can be a
         list of vectors or None. In the first case, the number of processes/threads for
         parallel computing can be specified. If processes is set to None, all available CPUs
@@ -111,14 +111,14 @@ class System(metaclass=ABCMeta):
                 print("Warning: Parameters have changed since last call of System.initialize")
 
         if kvecs is None:
-            kvecs = Kpoints([[0, 0]])
+            kvecsR = [[0, 0]]
+        else:
+            # Mask that yields non-masked values
+            nomask = ~kvecs.masksmall
 
-        # Mask that yields non-masked values
-        nomask = ~kvecs.masksmall
-
-        # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only
-        # the non-masked values
-        kvecsR = kvecs.points[nomask]
+            # Reshape the (possibly 2D array) of vectors to a one-dimensional list, use only
+            # the non-masked values
+            kvecsR = kvecs.points[nomask]
 
         if processes == 1:
             # Use a straight map in the single-process case to allow for cleaner profiling
@@ -128,14 +128,19 @@ class System(metaclass=ABCMeta):
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
             pool.close()
 
-        # Wrap back to a masked array
-        energies = np.ones(nomask.shape + (self.dimH,), dtype=np.float)*np.nan
-        states = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
-        hamiltonian = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
+        if kvecs is None:
+            energies = [r[0] for r in results]
+            states = [r[1] for r in results]
+            hamiltonian = [r[2] for r in results]
+        else:
+            # Wrap back to a masked array
+            energies = np.ones(nomask.shape + (self.dimH,), dtype=np.float)*np.nan
+            states = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
+            hamiltonian = np.ones(nomask.shape + (self.dimH, self.dimH), dtype=np.complex)*np.nan
 
-        energies[nomask] = [r[0] for r in results]
-        states[nomask] = [r[1] for r in results]
-        hamiltonian[nomask] = [r[2] for r in results]
+            energies[nomask] = [r[0] for r in results]
+            states[nomask] = [r[1] for r in results]
+            hamiltonian[nomask] = [r[2] for r in results]
 
         return Bandstructure(self.params, kvecs, energies, states, hamiltonian)
 

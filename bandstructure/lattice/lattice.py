@@ -150,8 +150,7 @@ class Lattice():
         kvectors[idxX, idxY, idxCoordinate]"""
 
         if self.__vecsReciprocal.shape[0] == 0:
-            # === 0D Brillouin zone ===
-            positions = Kpoints([[[0,0]]])
+            raise Exception("The 0D Brillouin zone is just a point. Use kvecs=None in System.solve instead.")
 
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin zone ===
@@ -469,7 +468,7 @@ class Lattice():
         dim = self.getDimensionality()
 
         if dim == 0:
-            return np.array([[0,0]])
+            return np.array([])
         elif dim == 1:
             return np.array([
                 2*np.pi*self.__vecsLattice[0]/np.linalg.norm(self.__vecsLattice[0])**2
