@@ -133,9 +133,9 @@ class System(metaclass=ABCMeta):
             pool.close()
 
         if kvecs is None:
-            energies = [r[0] for r in results]
-            states = [r[1] for r in results]
-            hamiltonian = [r[2] for r in results]
+            energies = np.array([r[0] for r in results])
+            states = np.array([r[1] for r in results])
+            hamiltonian = np.array([r[2] for r in results])
         else:
             # Wrap back to a masked array
             energies = np.ones(nomask.shape + (self.dimH,), dtype=np.float)*np.nan
