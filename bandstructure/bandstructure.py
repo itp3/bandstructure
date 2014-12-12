@@ -102,7 +102,7 @@ class Bandstructure:
             vecnDyvexm = np.sum(vecnDy[:,:,:,None]*vecm[:,:,:,:],axis=-2)
 
             # calculate Berry flux
-            gamma = 2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
+            gamma = -2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
             gamma[self.kvecs.mask] = 0
 
             # calculate total Berry flux and save the result

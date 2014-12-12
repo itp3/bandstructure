@@ -1,34 +1,40 @@
 import numpy as np
 import multiprocessing as mp
 from abc import ABCMeta, abstractmethod
+from warnings import warn
 
 from .. import Bandstructure
 from .. import Kpoints
+from .. import Parameters
 
 
 class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
     implement tunnelingRate (and onSite)."""
 
-    def __init__(self, params):
-        self.delta = None
-        self.params = params
-        self.hashOnInit = None
+    def __init__(self, params=Parameters()):
+        # set passed params
+        self.setParams(params)
 
-        # TODO: get 'default cutoff' from Lattice class
-        # lattice.getNearestNeighborCutoff()
-        self.params.setdefault('cutoff', 1.1)
-
+        # set default params
         self.setDefaultParams()
+        self.params.setdefault('cutoff', 1.1) # TODO: get 'default cutoff' from Lattice class
 
     def get(self, paramName):
         """Shortcut to a certain parameter"""
+
         return self.params.get(paramName)
 
     def setDefaultParams(self):
         """This method can be implemented by child classes to set default system parameters."""
 
         pass
+
+    def setParams(self, params):
+        """Sets new parameters."""
+
+        self.params = params
+        self.hashOnInit = None # this tells the solve method that initialization is needed
 
     @abstractmethod
     def tunnelingRate(self, dr):
@@ -53,8 +59,6 @@ class System(metaclass=ABCMeta):
         # Get distances within a certain cutoff radius
         cutoff = self.get("cutoff")
         self.distances = self.get("lattice").getDistances(cutoff)
-
-        self.delta = self.distances.noShifts
 
         # Get the tunneling rates for each displacement vector
         self.rates = self.tunnelingRate(self.distances.withShifts)
@@ -103,12 +107,12 @@ class System(metaclass=ABCMeta):
         parallel computing can be specified. If processes is set to None, all available CPUs
         will be used. If kvecs is set to None, solve for k=[0, 0]."""
 
-        if self.delta is None:
-            # First run
+        if self.hashOnInit is None:
+            # initialization needed
             self.initialize()
         else:
             if self.params.getHash() != self.hashOnInit:
-                print("Warning: Parameters have changed since last call of System.initialize")
+                warn("Parameters have changed since last call of System.initialize")
 
         if kvecs is None:
             kvecsR = [[0, 0]]
