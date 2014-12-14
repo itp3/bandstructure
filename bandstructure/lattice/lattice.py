@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
-from .. import Distances
+
+from .displacements import Displacements
 from .. import Kpoints
 
 
@@ -506,12 +507,9 @@ class Lattice():
         if show:
             plt.show()
 
-    def getDistances(self, cutoff):
-        """Create a matrix that contains all distances from the central position of a
-        sublattice to all positions of another one.
-
-        distances = getDistances(cutoff)
-        distances[idxSublatticeTo, idxSublatticeFrom, idxLink, idxCoordinate]"""
+    def getDisplacements(self, cutoff):
+        """Create a Displacements object that contains all vectors from the central position of a
+        sublattice to all positions of another one."""
 
         # positions generated from the lattice vectors
         positions = self.getPositions(cutoff)
@@ -545,9 +543,9 @@ class Lattice():
         matDeltaRMask = (matDeltaRAbs > cutoff) | (matDeltaRAbs < self.__tol)
         unnecessaryLinks = np.all(matDeltaRMask,axis=(0,1))
 
-        return Distances(matDeltaR[:,:,~unnecessaryLinks],
-            positions[~unnecessaryLinks],
-            matDeltaRMask[:,:,~unnecessaryLinks])
+        return Displacements(matDeltaR[:, :, ~unnecessaryLinks],
+                             positions[~unnecessaryLinks],
+                             matDeltaRMask[:, :, ~unnecessaryLinks])
 
     def __str__(self):
         return str({'vecsLattice': self.__vecsLattice, 'vecsBasis': self.__vecsBasis})

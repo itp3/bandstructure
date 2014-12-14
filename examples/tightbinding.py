@@ -21,4 +21,4 @@ s = TightBindingSystem(params)
 path = l.getKvectorsPath(300, ['A', 'G', 'X', 'A'])
 
 bandstructure = s.solve(path)
-bandstructure.plot()
+bandstructure.plot("dispersion.pdf")

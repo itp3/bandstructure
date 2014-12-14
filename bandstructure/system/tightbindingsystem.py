@@ -13,9 +13,10 @@ class TightBindingSystem(System):
         t2 = self.get("t2")
 
         # Orbital matrix
-        m = np.array([[1, 0], [0, -1]])
-        # m = np.array([-t])
+        # m = np.array([[1, 0], [0, -1]])
+        m = np.array([-1])
 
         nn = dr.getNeighborsMask(1)
         nnn = dr.getNeighborsMask(2)
+
         return t * m * nn[:, :, :, None, None] + t2 * m * nnn[:, :, :, None, None]

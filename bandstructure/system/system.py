@@ -57,10 +57,10 @@ class System(metaclass=ABCMeta):
 
         # Get distances within a certain cutoff radius
         cutoff = self.get("cutoff")
-        self.distances = self.get("lattice").getDistances(cutoff)
+        self.distances = self.get("lattice").getDisplacements(cutoff)
 
         # Get the tunneling rates for each displacement vector
-        self.rates = self.tunnelingRate(self.distances.withShifts)
+        self.rates = self.tunnelingRate(self.distances)
 
         # Check the dimension of the returned tensor
         rs = self.rates.shape
@@ -84,7 +84,7 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-        expf = np.exp(1j * np.dot(self.distances.noShifts, kvec))
+        expf = np.exp(1j * np.dot(self.distances.withoutShifts, kvec))
 
         # The Hamiltonian is given by the sum over all positions:
         product = expf[None, None, :, None, None] * self.rates

@@ -145,7 +145,7 @@ class Bandstructure:
 
         return np.squeeze(phases)
 
-    def plot(self, filename=None, show=True, legend=True):
+    def plot(self, filename=None, show=True, legend=False):
         """Plot the band structure."""
 
         import matplotlib.pyplot as plt
