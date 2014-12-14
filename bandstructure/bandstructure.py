@@ -2,12 +2,12 @@ import numpy as np
 
 
 class Bandstructure:
-    def __init__(self, params, kvecs, energies, states, hamiltonian):
+    def __init__(self, params, kvectors, energies, states, hamiltonians):
         self.params = params
-        self.kvecs = kvecs
+        self.kvectors = kvectors
         self.energies = energies
         self.states = states
-        self.hamiltonian = hamiltonian
+        self.hamiltonians = hamiltonians
 
     def numBands(self):
         """Get the number of bands"""
@@ -33,12 +33,10 @@ class Bandstructure:
         ratios = []
         for b in bands:
             gaps = []
-
             enThis = self.energies[..., b]
 
             if b >= 1:  # not the lowest band
                 enBottom = self.energies[..., b - 1]
-
                 if local:
                     gaps.append(np.nanmin(enThis - enBottom))
                 else:
@@ -46,16 +44,13 @@ class Bandstructure:
 
             if b < nb - 1:  # not the highest band
                 enTop = self.energies[..., b + 1]
-
                 if local:
                     gaps.append(np.nanmin(enTop - enThis))
                 else:
                     gaps.append(np.nanmin(enTop) - np.nanmax(enThis))
 
             minGap = np.nanmin(gaps)
-
             bandwidth = np.nanmax(self.energies[..., b]) - np.nanmin(self.energies[..., b])
-
             ratios.append(minGap / bandwidth)
 
         return np.squeeze(ratios)
@@ -63,16 +58,15 @@ class Bandstructure:
     def getBerryFlux(self, band=None):
         """Returns the total Berry flux for all bands, unless a specific band index is given."""
 
-        if self.kvecs is None or self.kvecs.dim != 2:
+        if self.kvectors is None or self.kvectors.dim != 2:
             raise Exception("Only supports 2D k-space arrays")
 
-        # === derivatives of the hamiltonians ===
-        # determine derivatives *dx resp. *dy
-        Dx = np.empty_like(self.hamiltonian)
-        Dx[1:-1,:] = (self.hamiltonian[2:,:]-self.hamiltonian[:-2,:])/2
+        # Derivatives of the Hamiltonian (multiplied by dx, dy)
+        Dx = np.empty_like(self.hamiltonians)
+        Dx[1:-1, :] = (self.hamiltonians[2:, :] - self.hamiltonians[:-2, :])/2
 
-        Dy = np.empty_like(self.hamiltonian)
-        Dy[:,1:-1] = (self.hamiltonian[:,2:]-self.hamiltonian[:,:-2])/2
+        Dy = np.empty_like(self.hamiltonians)
+        Dy[:, 1:-1] = (self.hamiltonians[:, 2:] - self.hamiltonians[:, :-2])/2
 
         nb = self.numBands()
 
@@ -83,29 +77,29 @@ class Bandstructure:
 
         fluxes = []
         for n in bands:
-            #nth eigenvector
-            vecn = self.states[:,:,:,n]
-            #other eigenvectors
-            vecm = self.states[:,:,:,np.arange(nb)[np.arange(nb) != n]]
+            # nth eigenvector
+            vecn = self.states[..., n]
+            # other eigenvectors
+            vecm = self.states[..., np.arange(nb)[np.arange(nb) != n]]
 
-            #nth eigenenergy
-            en = self.energies[:,:,n]
-            #other eigenenergies
-            em = self.energies[:,:,np.arange(nb)[np.arange(nb) != n]]
-            ediff = (em[:,:,:] - en[:,:,None])**2
+            # nth eigenenergy
+            en = self.energies[..., n]
+            # other eigenenergies
+            em = self.energies[..., np.arange(nb)[np.arange(nb) != n]]
+            ediff = (em - en[:, :, None])**2
 
             # put everything together
-            vecnDx = np.sum(vecn.conj()[:,:,:,None]*Dx[:,:,:,:],axis=-2)
-            vecnDxvexm = np.sum(vecnDx[:,:,:,None]*vecm[:,:,:,:],axis=-2)
+            vecnDx = np.sum(vecn.conj()[:, :, :, None] * Dx, axis=-2)
+            vecnDxvexm = np.sum(vecnDx[:, :, :, None] * vecm, axis=-2)
 
-            vecnDy = np.sum(vecn.conj()[:,:,:,None]*Dy[:,:,:,:],axis=-2)
-            vecnDyvexm = np.sum(vecnDy[:,:,:,None]*vecm[:,:,:,:],axis=-2)
+            vecnDy = np.sum(vecn.conj()[:, :, :, None] * Dy, axis=-2)
+            vecnDyvexm = np.sum(vecnDy[:, :, :, None] * vecm, axis=-2)
+
+            # calculate Berry curvature
+            gamma = -2 * np.imag(np.sum((vecnDxvexm/ediff) * vecnDyvexm.conj(), axis=-1))
+            gamma[self.kvectors.mask] = 0
 
             # calculate Berry flux
-            gamma = -2*np.imag(np.sum((vecnDxvexm/ediff)*vecnDyvexm.conj(),axis=-1))
-            gamma[self.kvecs.mask] = 0
-
-            # calculate total Berry flux and save the result
             fluxes.append(np.sum(gamma))
 
         return np.squeeze(fluxes)
@@ -114,13 +108,11 @@ class Bandstructure:
         """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
         band index is given."""
 
-        if self.kvecs is None or self.kvecs.dim != 1:
+        if self.kvectors is None or self.kvectors.dim != 1:
             raise Exception("Only supports 1D k-space arrays")
 
-        nb = self.numBands()
-
         if band is None:
-            bands = range(nb)
+            bands = range(self.numBands())
         else:
             bands = [band]
 
@@ -138,7 +130,7 @@ class Bandstructure:
 
             # Compute <u_k| i * d/dk |u_k> dk
             berry = 1j * np.sum(psi.conj() * deriv, axis=1)
-            berry[self.kvecs.mask] = 0
+            berry[self.kvectors.mask] = 0
 
             # Integrate over path and save the result
             phases.append(np.sum(berry).real)
@@ -150,18 +142,17 @@ class Bandstructure:
 
         import matplotlib.pyplot as plt
 
-        if self.kvecs is None:
+        if self.kvectors is None:
             # Zero-dimensional system
-
             plt.plot(self.energies[0], linewidth=0, marker='+')
 
-        elif self.kvecs.dim == 1:
+        elif self.kvectors.dim == 1:
             for b, energy in enumerate(self.energies.T):
-                plt.plot(self.kvecs.pathLength, energy, label=str(b))
+                plt.plot(self.kvectors.pathLength, energy, label=str(b))
 
-            if self.kvecs.specialpoints_idx is not None:
-                specialpoints = self.kvecs.pathLength[self.kvecs.specialpoints_idx]
-                plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
+            if self.kvectors.specialpoints_idx is not None:
+                specialpoints = self.kvectors.pathLength[self.kvectors.specialpoints_idx]
+                plt.xticks(specialpoints, self.kvectors.specialpoints_labels)
                 plt.xlim(min(specialpoints), max(specialpoints))
 
             if legend:
@@ -177,8 +168,8 @@ class Bandstructure:
                 energy = self.energies[..., band].copy()
                 energy[np.isnan(energy)] = np.nanmin(energy)
 
-                ax.plot_surface(self.kvecs.points_masked[..., 0],
-                                self.kvecs.points_masked[..., 1],
+                ax.plot_surface(self.kvectors.points_masked[..., 0],
+                                self.kvectors.points_masked[..., 1],
                                 energy,
                                 cstride=1,
                                 rstride=1,
