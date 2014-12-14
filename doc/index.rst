@@ -14,14 +14,6 @@ Bandstructure
     :undoc-members:
     :show-inheritance:
 
-Distances
----------
-
-.. autoclass:: bandstructure.Distances
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Parameters
 ----------
 
@@ -45,6 +37,14 @@ Lattice
 -------
 
 .. autoclass:: bandstructure.lattice.Lattice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Displacements
+-------------
+
+.. autoclass:: bandstructure.lattice.Displacements
     :members:
     :undoc-members:
     :show-inheritance:

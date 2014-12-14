@@ -16,7 +16,7 @@ class TightBindingSystem(System):
         # m = np.array([[1, 0], [0, -1]])
         m = np.array([-1])
 
-        nn = dr.getNeighborsMask(1)
-        nnn = dr.getNeighborsMask(2)
+        nn = dr.getNeighborsMask(0)
+        nnn = dr.getNeighborsMask(1)
 
         return t * m * nn[:, :, :, None, None] + t2 * m * nnn[:, :, :, None, None]

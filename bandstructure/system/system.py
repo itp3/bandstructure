@@ -12,12 +12,8 @@ class System(metaclass=ABCMeta):
     implement tunnelingRate (and onSite)."""
 
     def __init__(self, params=Parameters()):
-        # set passed params
         self.setParams(params)
-
-        # set default params
         self.setDefaultParams()
-        self.params.setdefault('cutoff', 1.1) # TODO: get 'default cutoff' from Lattice class
 
     def get(self, paramName):
         """Shortcut to a certain parameter"""
@@ -33,7 +29,7 @@ class System(metaclass=ABCMeta):
         """Sets new parameters."""
 
         self.params = params
-        self.hashOnInit = None # this tells the solve method that initialization is needed
+        self.hashOnInit = None  # this tells the solve method that initialization is needed
 
     @abstractmethod
     def tunnelingRate(self, dr):
@@ -55,12 +51,12 @@ class System(metaclass=ABCMeta):
         """This needs to be run before doing any calculations on the lattice. The
         displacement vectors and all tunneling elements are calculated once."""
 
-        # Get distances within a certain cutoff radius
+        # Get displacements within a certain cutoff radius
         cutoff = self.get("cutoff")
-        self.distances = self.get("lattice").getDisplacements(cutoff)
+        self.displacements = self.get("lattice").getDisplacements(cutoff)
 
         # Get the tunneling rates for each displacement vector
-        self.rates = self.tunnelingRate(self.distances)
+        self.rates = self.tunnelingRate(self.displacements)
 
         # Check the dimension of the returned tensor
         rs = self.rates.shape
@@ -84,11 +80,11 @@ class System(metaclass=ABCMeta):
         onSite energies."""
 
         # Compute the exp(i r k) factor
-        expf = np.exp(1j * np.dot(self.distances.withoutShifts, kvec))
+        expf = np.exp(1j * np.dot(self.displacements.central, kvec))
 
         # The Hamiltonian is given by the sum over all positions:
         product = expf[None, None, :, None, None] * self.rates
-        product[self.distances.mask] = 0
+        product[self.displacements.mask] = 0
         h = (product).sum(axis=2)
 
         # Reshape Hamiltonian
