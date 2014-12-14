@@ -63,8 +63,6 @@ class System(metaclass=ABCMeta):
         if len(rs) != 5:
             raise Exception("tunnelingRate() needs to return a 5-tensor")
 
-        # TODO perform more checks, like: rs[4]==rs[3] ?
-
         self.diag = self.onSite()
 
         nSublattices = self.rates.shape[0]
