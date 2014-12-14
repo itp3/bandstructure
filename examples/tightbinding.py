@@ -5,20 +5,19 @@ sys.path.append("../")
 
 from bandstructure import Parameters
 from bandstructure.system import TightBindingSystem
-from bandstructure.lattice import SquareLattice
+from bandstructure.lattice import HoneycombLattice
 
-lattice = SquareLattice()
+lattice = HoneycombLattice()
 
 params = Parameters({
     'lattice': lattice,
-    'cutoff': 2.1,
-    't': 1,
-    't2': 0
+    't': 1
 })
 
 s = TightBindingSystem(params)
 
-path = lattice.getKvectorsPath(300, ['A', 'G', 'X', 'A'])
+# Solve system on high-symmetry path through Brillouin zone
+path = lattice.getKvectorsPath(resolution=300, pointlabels=['A', 'G', 'X', 'A'])
 
 bandstructure = s.solve(path)
 bandstructure.plot("dispersion.pdf")
