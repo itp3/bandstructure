@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 from warnings import warn
 
 from .. import Bandstructure
-from .. import Kpoints
 from .. import Parameters
 
 

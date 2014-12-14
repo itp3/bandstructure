@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import sys
 sys.path.append("../")
@@ -6,11 +6,8 @@ sys.path.append("../")
 from bandstructure import Parameters
 from bandstructure.system import TightBindingSystem
 from bandstructure.lattice import SquareLattice
-from bandstructure.plot import Plot
 
 l = SquareLattice()
-# l.makeFiniteAlongdirection(1, 20)
-# l.makeFiniteAlongdirection(0, 20)
 
 params = Parameters({
     'lattice': l,
@@ -21,9 +18,7 @@ params = Parameters({
 
 s = TightBindingSystem(params)
 
-# print("Parameters:")
-# s.params.showParams()
+path = l.getKvectorsPath(300, ['A', 'G', 'X', 'A'])
 
-p = Plot(s)
-# p.plotDispersionPath()
-p.plotDispersion()
+bandstructure = s.solve(path)
+bandstructure.plot()
