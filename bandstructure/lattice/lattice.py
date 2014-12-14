@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 
 from .displacements import Displacements
-from .. import Kpoints
+from .kvectors import Kvectors
 
 
 class Lattice():
@@ -165,7 +165,7 @@ class Lattice():
             positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
             positionsMask[1:-1] = False
 
-            positions = Kpoints(positions, mask = positionsMask)
+            positions = Kvectors(positions, mask = positionsMask)
 
         else:
             # === 2D Brillouin zone ===
@@ -195,7 +195,7 @@ class Lattice():
             si, se = np.where(~positionsMask)
             slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
 
-            positions = Kpoints(positions[slice], mask = positionsMask[slice])
+            positions = Kvectors(positions[slice], mask = positionsMask[slice])
 
         return positions
 
@@ -203,7 +203,7 @@ class Lattice():
 
         if self.__vecsReciprocal.shape[0] == 0:
             # === 0D Brillouin box ===
-            positions = Kpoints([[[0,0]]])
+            positions = Kvectors([[[0,0]]])
 
         elif self.__vecsReciprocal.shape[0] == 1:
             # === 1D Brillouin box ===
@@ -222,7 +222,7 @@ class Lattice():
             positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
             positionsMask[1:-1] = False
 
-            positions = Kpoints(positions, mask = positionsMask)
+            positions = Kvectors(positions, mask = positionsMask)
 
         else:
             # === 2D Brillouin box ===
@@ -247,7 +247,7 @@ class Lattice():
             positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
             positionsMask[1:-1,1:-1] = False
 
-            positions = Kpoints(positions, mask = positionsMask)
+            positions = Kvectors(positions, mask = positionsMask)
 
         return positions
 
@@ -308,7 +308,7 @@ class Lattice():
         positionsMask = np.ones(positions.shape[:-1],dtype=np.bool)
         positionsMask[1:-1] = False
 
-        return Kpoints(positions, positionsMask, specialpoints_idx, specialpoints_labels)
+        return Kvectors(positions, positionsMask, specialpoints_idx, specialpoints_labels)
 
     def getPositions(self, cutoff):
         """Generate all positions from the lattice vectors using [0,0] as the basis vector.

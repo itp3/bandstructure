@@ -22,14 +22,6 @@ Parameters
     :undoc-members:
     :show-inheritance:
 
-Kpoints
--------
-
-.. autoclass:: bandstructure.Kpoints
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 lattice package
 ===============
 
@@ -45,6 +37,14 @@ Displacements
 -------------
 
 .. autoclass:: bandstructure.lattice.Displacements
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Kvectors
+--------
+
+.. autoclass:: bandstructure.lattice.Kvectors
     :members:
     :undoc-members:
     :show-inheritance:

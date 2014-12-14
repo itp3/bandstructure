@@ -10,8 +10,8 @@ class DipolarSystem(System):
         self.params.setdefault("w", 3)
         self.params.setdefault("mu", 0)
 
-    def tunnelingRate(self, distances):
-        dr = distances.vectors
+    def tunnelingRate(self, displacements):
+        dr = displacements.vectors
 
         tbar = self.get("tbar")
         t = self.get("t")

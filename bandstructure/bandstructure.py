@@ -157,10 +157,10 @@ class Bandstructure:
 
         elif self.kvecs.dim == 1:
             for b, energy in enumerate(self.energies.T):
-                plt.plot(self.kvecs.length, energy, label=str(b))
+                plt.plot(self.kvecs.pathLength, energy, label=str(b))
 
             if self.kvecs.specialpoints_idx is not None:
-                specialpoints = self.kvecs.length[self.kvecs.specialpoints_idx]
+                specialpoints = self.kvecs.pathLength[self.kvecs.specialpoints_idx]
                 plt.xticks(specialpoints, self.kvecs.specialpoints_labels)
                 plt.xlim(min(specialpoints), max(specialpoints))
 

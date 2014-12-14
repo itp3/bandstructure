@@ -2,4 +2,3 @@
 
 from .parameters import Parameters
 from .bandstructure import Bandstructure
-from .kpoints import Kpoints
