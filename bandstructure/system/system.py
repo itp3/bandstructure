@@ -9,14 +9,14 @@ from .. import Parameters
 
 class System(metaclass=ABCMeta):
     """Abstract class for the implementation of a specific model system. Child classes need to
-    implement tunnelingRate (and onSite)."""
+    implement ``tunnelingRate()`` (and ``onSite()``)."""
 
     def __init__(self, params=Parameters()):
         self.setParams(params)
         self.setDefaultParams()
 
     def get(self, paramName):
-        """Shortcut to a certain parameter"""
+        """Shortcut to get a certain parameter."""
 
         return self.params.get(paramName)
 
@@ -32,24 +32,35 @@ class System(metaclass=ABCMeta):
         self.hashOnInit = None  # this tells the solve method that initialization is needed
 
     @abstractmethod
-    def tunnelingRate(self, dr):
-        """Returns the tunneling rate for the given tunneling process. orbFrom is the orbital on
-        the initial site, orbTo is the orbital on the final site and dr is the vector connecting
-        the two sites (points from initial to final site).
+    def tunnelingRate(self, displacements):
+        """
+        Specifies the tunneling rates for this system.
 
-        This method is used is independent from the sublattice."""
+        :param displacements: ``Displacements`` object
+        :returns: Returns a numpy array of tunneling rates of shape
+                  ``(nSublattices, nSublattices, nPositions, nOrbitals, nOrbitals)`` where
+                  ``nSublattices`` and ``nPositions`` are the number of sublattices and the
+                  number of vectors connecting the central site to other lattice sites
+                  (given by the ``displacements`` object). The number of orbitals
+                  (internal degree of freedom) is specified by the system itself.
+        """
 
         raise NotImplementedError("This method has to be implemented by a child class")
 
     def onSite(self):
-        """Returns the onsite Hamiltonian which can include a chemical potential in the form
-        of a diagonal matrix."""
+        """
+        Specifies the onsite Hamiltonian for this sytem.
+
+        :returns: a numpy array of shape ``(nOrbitals, nOrbitals)`` which can include a chemical
+                  potential in the form of a diagonal matrix. If ``None`` is returned, the onsite
+                  Hamiltonian is assumed to be zero.
+        """
 
         return None
 
     def initialize(self):
-        """This needs to be run before doing any calculations on the lattice. The
-        displacement vectors and all tunneling elements are calculated once."""
+        """This needs to be run before doing any calculations on the lattice. The displacement
+        vectors and all tunneling elements are calculated once."""
 
         # Get displacements within a certain cutoff radius
         cutoff = self.get("cutoff")
@@ -74,8 +85,12 @@ class System(metaclass=ABCMeta):
         self.hashOnInit = self.params.getHash()
 
     def getHamiltonian(self, kvec):
-        """Constructs the (Bloch) Hamiltonian on the specified lattice from tunnelingRate and
-        onSite energies."""
+        """Constructs the (Bloch) Hamiltonian on the specified lattice.
+
+        :param kvec: momentum for the Bloch Hamiltonian H(k).
+        :returns:    A numpy array of shape ``(dimH, dimH)`` where dimH = nSublattices * nOrbitals
+                     is the dimension of the Hilbert space.
+        """
 
         # Compute the exp(i r k) factor
         expf = np.exp(1j * np.dot(self.displacements.central, kvec))
@@ -95,10 +110,12 @@ class System(metaclass=ABCMeta):
         return h
 
     def solve(self, kvecs=None, processes=None):
-        """Solve the system for a given set of vectors in the Brillouin zone. kvecs can be a
-        list of vectors or None. In the first case, the number of processes/threads for
-        parallel computing can be specified. If processes is set to None, all available CPUs
-        will be used. If kvecs is set to None, solve for k=[0, 0]."""
+        """Solve the system for a given set of vectors in the Brillouin zone.
+
+        :param kvecs: a Kvectors object or ``None``. In the latter case, solve for k=[0, 0].
+        :param processes: The number of processes/threads for parallel computing. If set to
+                          ``None``, all available CPUs will be used.
+        """
 
         if self.hashOnInit is None:
             # initialization needed
@@ -119,7 +136,7 @@ class System(metaclass=ABCMeta):
 
         if processes == 1:
             # Use a straight map in the single-process case to allow for cleaner profiling
-            results = list(map(self.solveSingle, kvecsR))
+            results = list(map(self._solveSingle, kvecsR))
         else:
             pool = mp.Pool(processes)
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))
@@ -141,20 +158,25 @@ class System(metaclass=ABCMeta):
 
         return Bandstructure(self.params, kvecs, energies, states, hamiltonian)
 
-    def solveSingle(self, kvec):
-        """Helper function used by solve"""
+    def _solveSingle(self, kvec):
+        """Helper function used by ``solve``."""
 
         # Diagonalize Hamiltonian
         h = self.getHamiltonian(kvec)
         return np.linalg.eigh(h) + (h,)
 
     def solveSweep(self, kvecs, param, pi, pf, steps, processes=None):
-        """This is a helper function to solve a system for a parameter range. 'kvec' is the
-        array of k-vectors to solve for (see solve). 'param' is the name of the parameter to
-        loop over. 'pi' and 'pf' are the initial and final values of the parameter. 'steps' is
-        the number of sampling points.
+        """An iterator function which solves the system for a whole parameter range.
 
-        Usage:
+        :param kvecs: ``Kvectors`` object to solve for (see ``solve``).
+        :param param: name of the parameter to loop over
+        :param pi:    initial parameter value
+        :param pf:    final parameter value
+        :param steps: the number of sampling points.
+        :yields:      the current parameter value and the corresponding ``Bandstructure`` object.
+
+        Example:
+        --------
         >>> for mu, bs in system.solveSweep(kvecs, 'mu', 0, 10, steps=20):
         >>>     print("Flatness for mu = {mu}: {flatness}".format(mu=mu, flatness=bs.getFlatness())
         """
@@ -167,7 +189,15 @@ class System(metaclass=ABCMeta):
             yield val, bandstructure
 
     def optimizeFlatness(self, kvecs, params, band=0, monitor=False, processes=None, maxiter=None):
-        """Maximize the flatness of a certain band with respect to the given parameters."""
+        """Maximize the flatness of a certain band with respect to the given parameters.
+
+        :param kvecs: Kvectors object used as a basis for computing the bandstructure.
+        :param params:    list of strings with the parameter names which may be varied.
+        :param band:      Index of the band to be optimized (0: lowest band).
+        :param monitor:   Print monitoring messages?
+        :param processes: See ``solve``.
+        :param maxiter:   Maximum number of iterations of the optimizer.
+        """
 
         # initial parameter values
         x0 = [self.get(p) for p in params]
@@ -204,4 +234,4 @@ class System(metaclass=ABCMeta):
 
 
 def workerSolveSingle(args):
-    return args[0].solveSingle(args[1])
+    return args[0]._solveSingle(args[1])
