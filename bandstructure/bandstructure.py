@@ -208,19 +208,23 @@ class Bandstructure:
         :param orbital: Orbital to project onto. For ``None``, plot all orbitals
         """
 
+        import matplotlib.pyplot as plt
+
         basis = self.params.get("lattice").getVecsBasis()
         nSubs = basis.shape[0]
 
+        sorter = np.argsort(self.energies[kIndex])
+
         states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, band
-        states = states[kIndex].transpose(2, 0, 1)[np.argsort(self.energies[kIndex])]
+        states = states[kIndex].transpose(2, 0, 1)[sorter]
         nOrbs = states.shape[-1]
 
-        energies = self.energies[kIndex][np.argsort(self.energies[kIndex])]
+        energies = self.energies[kIndex][sorter]
 
         probs = np.abs(states)**2
         phases = np.angle(states)
 
-        import matplotlib.pyplot as plt
+        # === preparation of the plot ===
         fig, ax1 = plt.subplots()
         ax1.set_title("Eigenstate {} with E={}".format(band, energies[band]))
 
@@ -244,6 +248,9 @@ class Bandstructure:
             ax2.plot(basis[:,0], prob, 'x', c=color,alpha=1,ms=4)
             ax3.plot(prob, basis[:,1], 'x', c=color,alpha=1,ms=4)
 
+        ax1.set_xlabel("X-position")
+        ax1.set_ylabel("Y-position")
+
         # === resizing ===
         maxprob = max(ax3.get_xlim()[1],ax2.get_ylim()[1])
         ax3.set_xlim(0,maxprob*8)
@@ -256,17 +263,54 @@ class Bandstructure:
         y1,y2 = min(basis[:,1]), max(basis[:,1])
         ax1.set_ylim(y1-(y2-y1)*(1/8+1/6),y2+(y2-y1)/8)
 
+        # === output ===
         if filename is not None:
             plt.savefig(filename.format(**self.params))
 
         if show:
             plt.show()
 
-    def plotEnergies(self, kIndex=0, band=0, orbital=None, filename=None, show=True):
+    def plotEnergies(self, kIndex=0, band=None, filename=None, show=True,kde=False):
         """Plot the eigenenergies."""
 
         import matplotlib.pyplot as plt
 
+        energies = self.energies[kIndex][np.argsort(self.energies[kIndex])]
+
+        if kde:
+            from scipy.stats import gaussian_kde
+            kernel = gaussian_kde(energies,bw_method=0.03)
+            lin = np.linspace(energies[0],energies[-1],100)
+            dos = kernel(lin)
+        else:
+            dos, lin = np.histogram(energies, bins=50, density=True)
+            lin = (lin+(lin[1]-lin[0])/2)[:-1]
+
+        # === preparation of the plot ===
+        fig, ax1 = plt.subplots()
+
+        ax2=ax1.twiny()
+
+        # === plotting ===
+        ax1.plot(energies, 'kx', alpha=1,ms=4)
+        ax2.plot(dos, lin, 'k-', alpha=1,ms=4)
+
+        if band is not None:
+            ax1.set_title("Eigenstate {} marked with a red cross".format(band))
+            ax1.plot(band*np.ones(2),ax1.get_ylim(), 'r-', alpha=1,ms=4)
+            ax1.plot(ax1.get_xlim(),energies[band]*np.ones(2), 'r-', alpha=1,ms=4)
+
+        ax1.set_xlabel("Eigenstate")
+        ax1.set_ylabel("Energy")
+
+        # === resizing ===
+        ax2.set_xlim(0,max(dos)*8)
+        ax2.set_xticks([])
+
+        x1,x2 = ax1.get_xlim()
+        ax1.set_xlim(x1-(x2-x1)*(1/8+1/6),x2+(x2-x1)/8)
+
+        # === output ===
         if filename is not None:
             plt.savefig(filename.format(**self.params))
 
