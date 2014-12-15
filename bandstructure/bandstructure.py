@@ -200,7 +200,7 @@ class Bandstructure:
         if show:
             plt.show()
 
-    def plotState(self, kIndex=0, band=0, orbital=None, filename=None):
+    def plotState(self, kIndex=0, band=0, orbital=None, filename=None, show=True):
         """Plot the probability density of a specific eigenstate |u(k,nu)>
 
         :param kIndex:  specifies the momentum ``k = kvectors[kIndex]``
@@ -208,16 +208,70 @@ class Bandstructure:
         :param orbital: Orbital to project onto. For ``None``, plot all orbitals
         """
 
-        import matplotlib.pyplot as plt
+        basis = self.params.get("lattice").getVecsBasis()
+        nSubs = basis.shape[0]
 
-        print(self.states[0].shape)
-        state = self.states[kIndex, :, band].reshape(-1, 2)
-        dens = np.abs(state) ** 2
-        plt.plot(dens)
-        # plt.gca().set_yscale('log')
+        states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, band
+        states = states[kIndex].transpose(2, 0, 1)[np.argsort(self.energies[kIndex])]
+        nOrbs = states.shape[-1]
+
+        energies = self.energies[kIndex][np.argsort(self.energies[kIndex])]
+
+        probs = np.abs(states)**2
+        phases = np.angle(states)
+
+        import matplotlib.pyplot as plt
+        fig, ax1 = plt.subplots()
+        ax1.set_title("Eigenstate {} with E={}".format(band, energies[band]))
+
+        ax2=ax1.twinx()
+        ax3=ax1.twiny()
+
+        # === plotting ===
+        ax1.plot(basis[:,0], basis[:,1], 'x', c='0.7', alpha=1, zorder=-5, ms=8)
+
+        for orbital in range(nOrbs):
+            # --- 2d plot ---
+            prob = probs[band, :, orbital]
+            phase = phases[band, :, orbital]
+            color = ['r', 'b', 'g', 'y'][orbital]
+            #plt.scatter(basis[:, 0], basis[:, 1], s=prob*2e4, \
+            #    c=phase,edgecolor=color, linewidths=3, alpha=0.5)
+            ax1.scatter(basis[:,0], basis[:,1], s=prob*2e4, \
+                c=color, alpha=0.5)
+
+            # --- projection ---
+            ax2.plot(basis[:,0], prob, 'x', c=color,alpha=1,ms=4)
+            ax3.plot(prob, basis[:,1], 'x', c=color,alpha=1,ms=4)
+
+        # === resizing ===
+        maxprob = max(ax3.get_xlim()[1],ax2.get_ylim()[1])
+        ax3.set_xlim(0,maxprob*8)
+        ax2.set_ylim(0,maxprob*8)
+        ax3.set_xticks([])
+        ax2.set_yticks([])
+
+        x1,x2 = min(basis[:,0]), max(basis[:,0])
+        ax1.set_xlim(x1-(x2-x1)*(1/8+1/6),x2+(x2-x1)/8)
+        y1,y2 = min(basis[:,1]), max(basis[:,1])
+        ax1.set_ylim(y1-(y2-y1)*(1/8+1/6),y2+(y2-y1)/8)
 
         if filename is not None:
             plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
+
+    def plotEnergies(self, kIndex=0, band=0, orbital=None, filename=None, show=True):
+        """Plot the eigenenergies."""
+
+        import matplotlib.pyplot as plt
+
+        if filename is not None:
+            plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
 
     def plotBerryCurvature(self, band=0):
         """Plot the Berry curvature of a specific band in the 2D Brillouin zone."""
