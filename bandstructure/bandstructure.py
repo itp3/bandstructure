@@ -137,8 +137,14 @@ class Bandstructure:
 
         return np.squeeze(phases)
 
-    def plot(self, filename=None, show=True, legend=False):
-        """Plot the band structure."""
+    def plot(self, filename=None, show=True, legend=False, elim=None):
+        """Plot the band structure.
+
+        :param filename: Filename of the plot (if it is None, plot will not be saved).
+        :param show:     Show the plot in a matplotlib frontend.
+        :param legend:   Show a plot legend describing the bands.
+        :param elim:     Limits on the "energy" axis.
+        """
 
         import matplotlib.pyplot as plt
 
@@ -154,6 +160,8 @@ class Bandstructure:
                 specialpoints = self.kvectors.pathLength[self.kvectors.specialpoints_idx]
                 plt.xticks(specialpoints, self.kvectors.specialpoints_labels)
                 plt.xlim(min(specialpoints), max(specialpoints))
+                if elim is not None:
+                    plt.ylim(elim)
 
             if legend:
                 plt.legend()
@@ -164,6 +172,9 @@ class Bandstructure:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
 
+            eMin = np.nanmin(self.energies)
+            eMax = np.nanmax(self.energies)
+
             for band in range(self.energies.shape[-1]):
                 energy = self.energies[..., band].copy()
                 energy[np.isnan(energy)] = np.nanmin(energy)
@@ -173,10 +184,15 @@ class Bandstructure:
                                 energy,
                                 cstride=1,
                                 rstride=1,
-                                cmap=cm.coolwarm,
-                                linewidth=0.03,
-                                antialiased=False
+                                cmap=cm.cool,
+                                vmin=eMin,
+                                vmax=eMax,
+                                linewidth=0.001,
+                                antialiased=True
                                 )
+
+                if elim is not None:
+                    plt.zlim(elim)
 
         if filename is not None:
             plt.savefig(filename.format(**self.params))

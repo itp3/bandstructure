@@ -15,7 +15,7 @@ class Parameters(dict):
             if default is not None:
                 return default
 
-            raise KeyError("Missing parameter '{}'".format(paramName))
+            raise KeyError("Missing parameter '{}'".format(paramName)) from None
 
     def showParams(self):
         """Print a list of all parameters in this system"""
