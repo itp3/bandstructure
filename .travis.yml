@@ -21,8 +21,9 @@ before_install:
 
 install:
   - if [[ $TRAVIS_PYTHON_VERSION != "3.2_with_system_site_packages" ]]; then
-        conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest coveralls;
+        conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest pytest-cov;
         source activate testenv;
+        pip install coveralls;
     fi
 
 script:
