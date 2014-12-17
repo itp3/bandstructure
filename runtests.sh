@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 export PYTHONPATH="."
 
 python3 -m pytest \
