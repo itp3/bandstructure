@@ -9,7 +9,7 @@ python:
   - 3.4
 
 before_install:
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.2_with_system_site_packages" ]]; then
         sudo apt-get install -qq python3-numpy python3-scipy;
     else
          wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -20,7 +20,7 @@ before_install:
     fi
 
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then
+  - if [[ $TRAVIS_PYTHON_VERSION != "3.2_with_system_site_packages" ]]; then
         conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest;
         source activate testenv;
     fi
