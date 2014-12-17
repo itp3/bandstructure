@@ -2,6 +2,8 @@ import numpy as np
 
 
 class Bandstructure:
+    __tol = 1e-10
+
     def __init__(self, params, kvectors, energies, states, hamiltonians):
         self.params = params
         self.kvectors = kvectors
@@ -200,7 +202,7 @@ class Bandstructure:
         if show:
             plt.show()
 
-    def plotState(self, kIndex=0, band=0, orbital=None, filename=None, show=True):
+    def plotState(self, kIndex=0, state=0, orbital=None, filename=None, show=True):
         """Plot the probability density of a specific eigenstate |u(k,nu)>
 
         :param kIndex:  specifies the momentum ``k = kvectors[kIndex]``
@@ -215,8 +217,8 @@ class Bandstructure:
 
         sorter = np.argsort(self.energies[kIndex])
 
-        states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, band
-        states = states[kIndex].transpose(2, 0, 1)[sorter]
+        states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, state
+        states = states[kIndex].transpose(2, 0, 1)[sorter] # state, sub, orb
         nOrbs = states.shape[-1]
 
         energies = self.energies[kIndex][sorter]
@@ -226,7 +228,8 @@ class Bandstructure:
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
-        ax1.set_title("Eigenstate {} with E={}".format(band, energies[band]))
+        ax1.set_aspect('equal')
+        ax1.set_title("Eigenstate {} with E={}".format(state, energies[state]))
 
         ax2=ax1.twinx()
         ax3=ax1.twiny()
@@ -236,8 +239,8 @@ class Bandstructure:
 
         for orbital in range(nOrbs):
             # --- 2d plot ---
-            prob = probs[band, :, orbital]
-            phase = phases[band, :, orbital]
+            prob = probs[state, :, orbital]
+            phase = phases[state, :, orbital]
             color = ['r', 'b', 'g', 'y'][orbital]
             #plt.scatter(basis[:, 0], basis[:, 1], s=prob*2e4, \
             #    c=phase,edgecolor=color, linewidths=3, alpha=0.5)
@@ -245,23 +248,34 @@ class Bandstructure:
                 c=color, alpha=0.5)
 
             # --- projection ---
-            ax2.plot(basis[:,0], prob, 'x', c=color,alpha=1,ms=4)
-            ax3.plot(prob, basis[:,1], 'x', c=color,alpha=1,ms=4)
+            sorter = np.argsort(prob)
+            prob = prob[sorter]
+            pos = basis[sorter]
+
+            splitter =  np.where(np.diff(prob) > self.__tol)[0] + 1
+            prob_split = np.split(prob,splitter)
+            pos_split = np.split(pos,splitter,axis=0)
+
+            for prob, pos in zip(prob_split,pos_split):
+                ax2.plot(pos[:,0], prob, 'x-', c=color,alpha=0.5,ms=8)
+                ax3.plot(prob, pos[:,1], 'x-', c=color,alpha=0.5,ms=8)
 
         ax1.set_xlabel("X-position")
         ax1.set_ylabel("Y-position")
 
+        ax1.grid()
+
         # === resizing ===
         maxprob = max(ax3.get_xlim()[1],ax2.get_ylim()[1])
-        ax3.set_xlim(0,maxprob*8)
-        ax2.set_ylim(0,maxprob*8)
+        ax3.set_xlim(0,maxprob*15)
+        ax2.set_ylim(0,maxprob*15)
         ax3.set_xticks([])
         ax2.set_yticks([])
 
-        x1,x2 = min(basis[:,0]), max(basis[:,0])
-        ax1.set_xlim(x1-(x2-x1)*(1/8+1/6),x2+(x2-x1)/8)
-        y1,y2 = min(basis[:,1]), max(basis[:,1])
-        ax1.set_ylim(y1-(y2-y1)*(1/8+1/6),y2+(y2-y1)/8)
+        x1,x2 = ax1.get_xlim() #min(basis[:,0]), max(basis[:,0])
+        ax1.set_xlim(x1-(x2-x1)*(2/6),x2+(x2-x1)/6)
+        y1,y2 = ax1.get_ylim() #min(basis[:,1]), max(basis[:,1])
+        ax1.set_ylim(y1-(y2-y1)*(2/6),y2+(y2-y1)/6)
 
         # === output ===
         if filename is not None:
@@ -270,17 +284,77 @@ class Bandstructure:
         if show:
             plt.show()
 
-    def plotEnergies(self, kIndex=0, band=None, filename=None, show=True,kde=False):
-        """Plot the eigenenergies."""
+    def plotRadialdistribution(self, kIndex=0, statemarker=None, filename=None, show=True,kde=False):
+        """Plot the radial distribution of states."""
 
         import matplotlib.pyplot as plt
 
-        energies = self.energies[kIndex][np.argsort(self.energies[kIndex])]
+        basis = self.params.get("lattice").getVecsBasis().copy() # sub, coord
+        center = np.sum(basis,axis=0)/basis.shape[0]
+        basis -= center # TODO Do the shift inside the lattice class
+
+        radii = np.sqrt(np.sum(basis**2,axis=-1)) # sub
+
+        nSubs = basis.shape[0]
+
+        sorter = np.argsort(self.energies[kIndex])
+        states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, state
+        states = states[kIndex].transpose(2, 0, 1)[sorter] # state, sub, orb
+        probs = np.abs(states)**2 # state, sub, orb
+
+        nOrbs = states.shape[-1]
+        nStates = states.shape[0]
+
+        # === preparation of the plot ===
+        fig, ax1 = plt.subplots()
+
+        # === plotting ===
+        x, step = np.linspace(min(radii),max(radii),100,retstep=True)
+        x = x.tolist()
+        x = [x[0]-step]+x+[x[-1]+step]
+
+        for s in range(nStates):
+            for o in range(nOrbs):
+                prob = probs[s,:,o]
+                color = ['r', 'b', 'g', 'y'][o]
+
+                y = np.zeros_like(x)
+                for p, r in zip(prob, radii): y[np.argmin(np.abs(x-r))] += p
+
+                ax1.fill_between(y+s,x,color=color,alpha=0.5,lw=0.3)
+
+        ax1.set_ylim(x[0],x[-1])
+        ax1.set_xlim(0,nStates)
+
+        ax1.set_xlabel("Eigenstate")
+        ax1.set_ylabel("Radial distance")
+
+        ax1.grid()
+
+        # === mark eigenstate ===
+        if statemarker is not None:
+            ax1.set_title("Eigenstate {} marked with a yellow line".format(statemarker))
+            ax1.plot(statemarker*np.ones(2),ax1.get_ylim(), 'y-', alpha=1,lw=2,zorder=-5)
+
+        # === output ===
+        if filename is not None:
+            plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
+
+
+    def plotSpectrum(self, statemarker=None, filename=None, show=True,kde=False):
+        """Plot spectrum and density of states."""
+
+        import matplotlib.pyplot as plt
+
+        energies = np.sort(self.energies.flat)
 
         if kde:
             from scipy.stats import gaussian_kde
             kernel = gaussian_kde(energies,bw_method=0.03)
-            lin = np.linspace(energies[0],energies[-1],100)
+            lin = np.linspace(energies[0],energies[-1],300)
             dos = kernel(lin)
         else:
             dos, lin = np.histogram(energies, bins=50, density=True)
@@ -288,20 +362,16 @@ class Bandstructure:
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
-
         ax2=ax1.twiny()
 
         # === plotting ===
         ax1.plot(energies, 'kx', alpha=1,ms=4)
         ax2.plot(dos, lin, 'k-', alpha=1,ms=4)
 
-        if band is not None:
-            ax1.set_title("Eigenstate {} marked with a red cross".format(band))
-            ax1.plot(band*np.ones(2),ax1.get_ylim(), 'r-', alpha=1,ms=4)
-            ax1.plot(ax1.get_xlim(),energies[band]*np.ones(2), 'r-', alpha=1,ms=4)
-
         ax1.set_xlabel("Eigenstate")
         ax1.set_ylabel("Energy")
+
+        ax1.grid()
 
         # === resizing ===
         ax2.set_xlim(0,max(dos)*8)
@@ -309,6 +379,12 @@ class Bandstructure:
 
         x1,x2 = ax1.get_xlim()
         ax1.set_xlim(x1-(x2-x1)*(1/8+1/6),x2+(x2-x1)/8)
+
+        # === mark eigenstate ===
+        if statemarker is not None:
+            ax1.set_title("Eigenstate {} marked with a yellow cross".format(statemarker))
+            ax1.plot(statemarker*np.ones(2),ax1.get_ylim(), 'y-', alpha=1,lw=2,zorder=-5)
+            ax1.plot(ax1.get_xlim(),energies[statemarker]*np.ones(2), 'y-', alpha=1,lw=2,zorder=-5)
 
         # === output ===
         if filename is not None:

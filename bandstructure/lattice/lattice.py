@@ -23,6 +23,14 @@ class Lattice():
     def initialize(self):
         pass
 
+    @property
+    def vecsBasis(self):
+        pass #TODO
+
+    @vecsBasis.setter
+    def vecsBasis(self, value):
+        pass #TODO
+
     def getSpecialPoints(self, reciprocalBasis = False):
         """Return the list of userdefined and automatically generated special points that can be
         used to describe a path through the Brillouin zone ( e.g. 'G' stands for automatically
