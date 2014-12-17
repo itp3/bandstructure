@@ -1,11 +1,7 @@
 language: python
-python:
-  - "3.3"
 
-# Allow the use of packages installed via apt-get
-# inside the virtualenv
-virtualenv:
-    system_site_packages: true
+python:
+  - "3.2_with_system_site_packages"
 
 before_install:
     - sudo apt-get install -qq python3-numpy
