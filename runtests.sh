@@ -10,5 +10,3 @@ python3 -m pytest \
         --cov bandstructure \
         --cov tests \
         tests
-
-rm -f .coverage .coverage.*
