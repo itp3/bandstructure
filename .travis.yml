@@ -15,4 +15,4 @@ install:
 
 # Run tests
 script:
-    - PYTHONPATH="." py.test tests
+    - PYTHONPATH=".:$PYTHONPATH" py.test tests
