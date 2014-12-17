@@ -196,6 +196,75 @@ class Bandstructure:
                 if elim is not None:
                     plt.zlim(elim)
 
+        # === output ===
+        if filename is not None:
+            plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
+
+    def plotDynamics(self, kIndex=0, startNumber=0, times=np.linspace(0,5,100), filename=None, show=True):
+
+        import matplotlib.pyplot as plt
+        import matplotlib.animation as animation
+
+        nTimes = len(times)
+
+        basis = self.params.get("lattice").getVecsBasis()
+        nSubs = basis.shape[0]
+
+        # === calculation of the time evolution ===
+
+        EVecs = self.states[kIndex] # sub * orb, state
+        EVals = self.energies[kIndex] # state
+
+        start = np.zeros(EVecs.shape[0]) # sub * orb
+        start[startNumber] = 1
+        startTransformed = np.dot(EVecs.T.conj(),start) # state
+        endTransformed = np.exp(-1j*EVals[None,:]*times[:,None])*startTransformed[None,:] # time, state
+        end = np.dot(EVecs,endTransformed.T).T # time, sub * orb
+
+        tprobs = np.abs(end.reshape(nTimes,nSubs,-1))**2 # time, sub, orb
+
+        nOrbs = tprobs.shape[-1]
+
+        # === preparation of the plot ===
+
+        fig, ax1 = plt.subplots()
+        ax1.set_aspect('equal',adjustable='datalim')
+
+        # Set up formatting for the movie files
+        '''Writer = animation.writers['ffmpeg']
+        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)'''
+
+        # === plotting ===
+
+        # --- initial plot ---
+        ax1.plot(basis[:,0], basis[:,1], 'x', c='0.7', alpha=1, zorder=-5, ms=8,mew=1)
+
+        scats = []
+        probs = tprobs[0] # sub, orb
+        for o in range(nOrbs):
+            prob = probs[:, o]
+            color = ['r', 'b', 'g', 'y'][o]
+            scats.append(ax1.scatter(basis[:,0], basis[:,1], s=prob**2*2e4, \
+                c=color, alpha=0.5))
+
+        ax1.set_xlabel("X-position")
+        ax1.set_ylabel("Y-position")
+
+        # --- following plots ---
+
+        def update_plot(t, probs, scat):
+            for scat, prob in zip(scats, tprobs[t].T):
+                scat._sizes = prob**2*2e4
+            return scat,
+
+        ani = animation.FuncAnimation(fig, update_plot, frames=range(nTimes), fargs=(tprobs, scats))
+
+        '''ani.save('dynamics.mp4', writer=writer)'''
+
+        # === output ===
         if filename is not None:
             plt.savefig(filename.format(**self.params))
 
@@ -208,6 +277,8 @@ class Bandstructure:
         :param kIndex:  specifies the momentum ``k = kvectors[kIndex]``
         :param band:    The band (eigenstate) index
         :param orbital: Orbital to project onto. For ``None``, plot all orbitals
+
+        Diameters of circles are proportional to the probabilities.
         """
 
         import matplotlib.pyplot as plt
@@ -244,7 +315,7 @@ class Bandstructure:
             color = ['r', 'b', 'g', 'y'][orbital]
             #plt.scatter(basis[:, 0], basis[:, 1], s=prob*2e4, \
             #    c=phase,edgecolor=color, linewidths=3, alpha=0.5)
-            ax1.scatter(basis[:,0], basis[:,1], s=prob*2e4, \
+            ax1.scatter(basis[:,0], basis[:,1], s=prob**2*2e4, \
                 c=color, alpha=0.5)
 
             # --- projection ---
