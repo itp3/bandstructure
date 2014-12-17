@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/sharkdp/bandstructure.svg?branch=master)](https://travis-ci.org/sharkdp/bandstructure)
+
 Introduction
 ------------
 *bandstructure* is a python module for solving tight-binding(-like) models. It has a modular structure allowing for easy customization of the underlying lattice structure as well as the specific system (specified by its tunneling rates).
