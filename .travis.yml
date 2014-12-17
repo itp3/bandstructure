@@ -11,7 +11,8 @@ before_install:
   - conda update --yes conda
 
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy
+  - conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest
+  - source activate testenv
 
 # Run tests
 script:
