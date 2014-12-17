@@ -6,16 +6,21 @@ python:
   - 3.4
 
 before_install:
-  - sudo apt-get install -qq python3-numpy python3-scipy
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda/bin:$PATH
-  - conda update --yes conda
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then
+        sudo apt-get install -qq python3-numpy python3-scipy
+    else
+         wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+         chmod +x miniconda.sh
+         ./miniconda.sh -b
+         export PATH=/home/travis/miniconda/bin:$PATH
+         conda update --yes conda
+    fi
 
 install:
-  - conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest
-  - source activate testenv
+  - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then
+        conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest
+        source activate testenv
+    fi
 
 script:
     - PYTHONPATH="." py.test tests
