@@ -27,7 +27,11 @@ install:
     fi
 
 script:
-    - ./runtests.sh
+    - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then
+          PYTHONPATH="." python3 -m pytest --cov-config tests/.coveragerc --cov bandstructure --cov tests tests;
+      else
+          PYTHONPATH="." python3 -m pytest tests;
+      fi
 
 after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then coveralls; fi
