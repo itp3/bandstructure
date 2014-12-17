@@ -228,14 +228,14 @@ class Bandstructure:
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
-        ax1.set_aspect('equal')
+        ax1.set_aspect('equal',adjustable='datalim')
         ax1.set_title("Eigenstate {} with E={}".format(state, energies[state]))
 
         ax2=ax1.twinx()
         ax3=ax1.twiny()
 
         # === plotting ===
-        ax1.plot(basis[:,0], basis[:,1], 'x', c='0.7', alpha=1, zorder=-5, ms=8)
+        ax1.plot(basis[:,0], basis[:,1], 'x', c='0.7', alpha=1, zorder=-5, ms=8,mew=1)
 
         for orbital in range(nOrbs):
             # --- 2d plot ---
@@ -257,8 +257,8 @@ class Bandstructure:
             pos_split = np.split(pos,splitter,axis=0)
 
             for prob, pos in zip(prob_split,pos_split):
-                ax2.plot(pos[:,0], prob, 'x-', c=color,alpha=0.5,ms=8)
-                ax3.plot(prob, pos[:,1], 'x-', c=color,alpha=0.5,ms=8)
+                ax2.plot(pos[:,0], prob, 'x-', c=color,alpha=0.5,ms=8,mew=1)
+                ax3.plot(prob, pos[:,1], 'x-', c=color,alpha=0.5,ms=8,mew=1)
 
         ax1.set_xlabel("X-position")
         ax1.set_ylabel("Y-position")
@@ -284,6 +284,52 @@ class Bandstructure:
         if show:
             plt.show()
 
+    def plotEnumeration(self, filename=None, show=True):
+        """Plot the enumeration of basis vectors and orbitals."""
+
+        import matplotlib.pyplot as plt
+
+        # === preparation of the plot ===
+        fig, ax1 = plt.subplots()
+        ax1.set_aspect('equal',adjustable='datalim')
+
+        # === plotting ===
+        basis = self.params.get("lattice").getVecsBasis()
+        nSubs = basis.shape[0]
+        nOrbs = self.states.shape[1]//nSubs
+
+        # --- positions ---
+        n = 0
+        for [x,y] in basis:
+            ax1.plot(x,y,'ko',ms=5,mew=1)
+
+            for o in range(nOrbs):
+                color = ['r', 'b', 'g', 'y'][o]
+                space = '          '*o
+                ax1.text(x, y, '\n\n{}{}'.format(space,n), verticalalignment='center', horizontalalignment='center',
+                    color=color, transform=ax1.transData, fontsize=11,fontweight='bold')
+                n += 1
+
+        # --- distances ---
+        an = np.linspace(0,2*np.pi,100)
+        ce = np.sum(basis,axis=0)/basis.shape[0]
+
+        uniqueRadii = np.sort(np.sqrt(np.sum((basis-ce)**2,axis=-1)), axis=None)
+        uniqueRadii = uniqueRadii[np.append(True, np.diff(uniqueRadii) > self.__tol)]
+
+        for r in uniqueRadii:
+            ax1.plot( r*np.cos(an)+ce[0], r*np.sin(an)+ce[1], '-', c='0.7', zorder=-5)
+
+        ax1.set_xlabel("X-position")
+        ax1.set_ylabel("Y-position")
+
+        # === output ===
+        if filename is not None:
+            plt.savefig(filename.format(**self.params))
+
+        if show:
+            plt.show()
+
     def plotRadialdistribution(self, kIndex=0, statemarker=None, filename=None, show=True,kde=False):
         """Plot the radial distribution of states."""
 
@@ -291,7 +337,7 @@ class Bandstructure:
 
         basis = self.params.get("lattice").getVecsBasis().copy() # sub, coord
         center = np.sum(basis,axis=0)/basis.shape[0]
-        basis -= center # TODO Do the shift inside the lattice class
+        basis -= center # TODO : Do the shift inside the lattice class (.copy() & ce in plotEnumeration is unnecessary then)
 
         radii = np.sqrt(np.sum(basis**2,axis=-1)) # sub
 
@@ -365,8 +411,8 @@ class Bandstructure:
         ax2=ax1.twiny()
 
         # === plotting ===
-        ax1.plot(energies, 'kx', alpha=1,ms=4)
-        ax2.plot(dos, lin, 'k-', alpha=1,ms=4)
+        ax1.plot(energies, 'kx', alpha=1,ms=8,mew=1)
+        ax2.plot(dos, lin, 'k-', alpha=1)
 
         ax1.set_xlabel("Eigenstate")
         ax1.set_ylabel("Energy")
