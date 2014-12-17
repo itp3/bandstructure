@@ -1,4 +1,6 @@
 language: python
 python:
+    - "3.2"
+    - "3.3"
     - "3.4"
 script: ./runtests.sh
