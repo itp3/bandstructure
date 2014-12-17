@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/sharkdp/bandstructure.svg?branch=master)](https://travis-ci.org/sharkdp/bandstructure)
+[![Build Status](https://travis-ci.org/sharkdp/bandstructure.svg?branch=master)](https://travis-ci.org/sharkdp/bandstructure) [![Coverage Status](https://img.shields.io/coveralls/sharkdp/bandstructure.svg)](https://coveralls.io/r/sharkdp/bandstructure)
+
 
 Introduction
 ------------
