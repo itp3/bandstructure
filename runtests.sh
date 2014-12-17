@@ -9,4 +9,6 @@ python3 -m pytest \
         --cov-report html \
         --cov bandstructure \
         --cov tests \
-        tests
+        tests |& grep -v 'warning: No data was collected.'
+
+rm .coverage*
