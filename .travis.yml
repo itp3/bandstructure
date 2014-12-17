@@ -1,6 +1,8 @@
 language: python
 
 python:
+  - 3.2
+  - 3.3
   - 3.4
 
 before_install:
@@ -14,6 +16,5 @@ install:
   - conda create --yes -n testenv python=$TRAVIS_PYTHON_VERSION pip scipy numpy pytest
   - source activate testenv
 
-# Run tests
 script:
-    - PYTHONPATH=".:$PYTHONPATH" py.test tests
+    - py.test tests
