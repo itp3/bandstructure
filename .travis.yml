@@ -4,7 +4,7 @@ python:
   - "3.2_with_system_site_packages"
 
 before_install:
-    - sudo apt-get install -qq python3-numpy
+    - sudo apt-get install -qq python3-numpy python3-scipy
 
 # Run tests
 script:
