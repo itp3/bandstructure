@@ -2,9 +2,13 @@ language: python
 
 python:
   - "3.2_with_system_site_packages"
+  - 3.2
+  - 3.3
+  - 3.4
 
 before_install:
-    - sudo apt-get install -qq python3-numpy python3-scipy
+    - sudo apt-get -qq install -qq python3-numpy python3-scipy
+    - pip install -r requirements.txt --use-mirrors
 
 # Run tests
 script:
