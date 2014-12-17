@@ -2,19 +2,20 @@
 
 Introduction
 ------------
-*bandstructure* is a python module for solving tight-binding(-like) models. It has a modular structure allowing for easy customization of the underlying lattice structure as well as the specific system (specified by its tunneling rates).
+*bandstructure* is a python module for solving tight-binding(-like) models. It has a modular structure allowing for easy customization of the underlying lattice structure as well as the specific system (defined by its tunneling rates).
 
 Features
 --------
-- *Speed*: NumPy vectorization is used whenever possible. Parallelization is supported through the python *multiprocessing* module.
-- *Dimensionality*: Two- and one-dimensional lattices are supported as well as different kinds of (semi-)finite systems.
-- *Predefined lattices*: Square lattice, Honeycomb lattice, Kagome lattice, Ruby lattice.
-- *Topological properties*: Calculation of Chern numbers and Berry phases.
+- NumPy vectorization is used whenever possible. Parallelization is supported through the python multiprocessing module
+- One- and two-dimensional lattices are supported as well as different kinds of (semi-)finite systems
+- Predefined lattices: Chains, Square lattice, Honeycomb lattice, Kagome lattice, Ruby lattice
+- Calculate topological properties: Chern numbers, Berry phases
 
 Requirements
 ------------
-* python 3
+* Tested with Python >= 3.2
 * numpy
+* scipy
 * matplotlib (optional)
 
 Example: graphene
