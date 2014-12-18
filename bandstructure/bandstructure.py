@@ -149,6 +149,7 @@ class Bandstructure:
         """
 
         import matplotlib.pyplot as plt
+        plt.clf()
 
         if self.kvectors is None:
             # Zero-dimensional system
@@ -282,6 +283,7 @@ class Bandstructure:
         """
 
         import matplotlib.pyplot as plt
+        plt.clf()
 
         basis = self.params.get("lattice").getVecsBasis()
         nSubs = basis.shape[0]
@@ -359,6 +361,7 @@ class Bandstructure:
         """Plot the enumeration of basis vectors and orbitals."""
 
         import matplotlib.pyplot as plt
+        plt.clf()
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
@@ -405,6 +408,7 @@ class Bandstructure:
         """Plot the radial distribution of states."""
 
         import matplotlib.pyplot as plt
+        plt.clf()
 
         basis = self.params.get("lattice").getVecsBasis().copy() # sub, coord
         center = np.sum(basis,axis=0)/basis.shape[0]
@@ -465,6 +469,7 @@ class Bandstructure:
         """Plot spectrum and density of states."""
 
         import matplotlib.pyplot as plt
+        plt.clf()
 
         energies = np.sort(self.energies.flat)
 
