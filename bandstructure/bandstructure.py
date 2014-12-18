@@ -149,7 +149,6 @@ class Bandstructure:
         """
 
         import matplotlib.pyplot as plt
-        plt.clf()
 
         if self.kvectors is None:
             # Zero-dimensional system
@@ -219,8 +218,13 @@ class Bandstructure:
         EVecs = self.states[kIndex] # sub * orb, state
         EVals = self.energies[kIndex] # state
 
-        start = np.zeros(EVecs.shape[0]) # sub * orb
-        start[startNumber] = 1
+        start = np.zeros(EVecs.shape[0],dtype=np.complex) # sub * orb
+        if type(startNumber) is dict:
+            for k, v in startNumber.items():
+                start[k] = v
+            start /= np.linalg.norm(start)
+        else:
+            start[startNumber] = 1
         startTransformed = np.dot(EVecs.T.conj(),start) # state
         endTransformed = np.exp(-1j*EVals[None,:]*times[:,None])*startTransformed[None,:] # time, state
         end = np.dot(EVecs,endTransformed.T).T # time, sub * orb
@@ -233,10 +237,6 @@ class Bandstructure:
 
         fig, ax1 = plt.subplots()
         ax1.set_aspect('equal',adjustable='datalim')
-
-        # Set up formatting for the movie files
-        '''Writer = animation.writers['ffmpeg']
-        writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)'''
 
         # === plotting ===
 
@@ -251,23 +251,26 @@ class Bandstructure:
             scats.append(ax1.scatter(basis[:,0], basis[:,1], s=prob**2*2e4, \
                 c=color, alpha=0.5))
 
+        txt = ax1.text(0.98, 0.98, '{:.2f}'.format(times[0]), verticalalignment='top', horizontalalignment='right',
+            transform=ax1.transAxes, fontsize=11,fontweight='bold')
+
         ax1.set_xlabel("X-position")
         ax1.set_ylabel("Y-position")
 
         # --- following plots ---
-
-        def update_plot(t, probs, scat):
+        def update_plot(t, probs, times, scats, txt):
+            txt.set_text('{:.2f}'.format(times[t]))
             for scat, prob in zip(scats, tprobs[t].T):
                 scat._sizes = prob**2*2e4
             return scat,
 
-        ani = animation.FuncAnimation(fig, update_plot, frames=range(nTimes), fargs=(tprobs, scats))
-
-        '''ani.save('dynamics.mp4', writer=writer)'''
+        ani = animation.FuncAnimation(fig, update_plot, frames=range(nTimes), fargs=(tprobs, times, scats, txt))
 
         # === output ===
         if filename is not None:
-            plt.savefig(filename.format(**self.params))
+            Writer = animation.writers['avconv'] # libav-tools has to be installed
+            writer = Writer(fps=30, metadata=dict(artist='ITP3'), bitrate=1800)
+            ani.save(filename.format(**self.params), writer=writer)
 
         if show:
             plt.show()
@@ -283,7 +286,6 @@ class Bandstructure:
         """
 
         import matplotlib.pyplot as plt
-        plt.clf()
 
         basis = self.params.get("lattice").getVecsBasis()
         nSubs = basis.shape[0]
@@ -361,7 +363,6 @@ class Bandstructure:
         """Plot the enumeration of basis vectors and orbitals."""
 
         import matplotlib.pyplot as plt
-        plt.clf()
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
@@ -408,7 +409,6 @@ class Bandstructure:
         """Plot the radial distribution of states."""
 
         import matplotlib.pyplot as plt
-        plt.clf()
 
         basis = self.params.get("lattice").getVecsBasis().copy() # sub, coord
         center = np.sum(basis,axis=0)/basis.shape[0]
@@ -469,7 +469,6 @@ class Bandstructure:
         """Plot spectrum and density of states."""
 
         import matplotlib.pyplot as plt
-        plt.clf()
 
         energies = np.sort(self.energies.flat)
 
