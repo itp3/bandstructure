@@ -5,4 +5,5 @@ from .squarelattice import SquareLattice
 from .honeycomblattice import HoneycombLattice
 from .kagomelattice import KagomeLattice
 from .rubylattice import RubyLattice
+from .lieblattice import LiebLattice
 from .regularchain import RegularChain

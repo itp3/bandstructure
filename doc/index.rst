@@ -81,6 +81,14 @@ RubyLattice
     :undoc-members:
     :show-inheritance:
 
+LiebLattice
+-----------
+
+.. autoclass:: bandstructure.lattice.LiebLattice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 RegularChain
 ------------
 
