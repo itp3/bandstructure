@@ -275,65 +275,74 @@ class Bandstructure:
         if show:
             plt.show()
 
-    def plotState(self, kIndex=0, state=0, orbital=None, filename=None, show=True):
+    def getStateAndEnergy(self, kInd=0, stateInd=0):
+        """Get a specific eigenstate |u(k,nu)> and its energy
+
+        :param kInd:     specifies the momentum ``k = kvectors[kInd]``
+        :param stateInd: the band (eigenstate) index (nu)
+        :returns:        tuple (state, energy) where state is a numpy array of
+                         shape ``(nSublattices, nOrbitals)``
+        """
+
+        nSubs = len(self.params.get("lattice").getVecsBasis())
+
+        sorter = np.argsort(self.energies[kInd])
+
+        newshape = self.states.shape[:-2] + (nSubs, -1, self.states.shape[-1])
+        state = self.states.reshape(newshape)[kInd, :, :, sorter[stateInd]]  # (nSub, nOrb)
+
+        energy = self.energies[kInd][sorter][stateInd]
+
+        return state, energy
+
+    def plotState(self, kInd=0, stateInd=0, filename=None, show=True):
         """Plot the probability density of a specific eigenstate |u(k,nu)>
 
-        :param kIndex:  specifies the momentum ``k = kvectors[kIndex]``
-        :param band:    The band (eigenstate) index
-        :param orbital: Orbital to project onto. For ``None``, plot all orbitals
+        :param kInd:     specifies the momentum ``k = kvectors[kInd]``
+        :param stateInd: the band (eigenstate) index (nu)
 
         Diameters of circles are proportional to the probabilities.
         """
 
+        basis = self.params.get("lattice").getVecsBasis()
+
         import matplotlib.pyplot as plt
 
-        basis = self.params.get("lattice").getVecsBasis()
-        nSubs = basis.shape[0]
+        state, energy = self.getStateAndEnergy(kInd, stateInd)
+        probs = np.abs(state) ** 2
 
-        sorter = np.argsort(self.energies[kIndex])
-
-        states = self.states.reshape(self.states.shape[:-2]+(nSubs, -1, self.states.shape[-1])) # k, sub, orb, state
-        states = states[kIndex].transpose(2, 0, 1)[sorter] # state, sub, orb
-        nOrbs = states.shape[-1]
-
-        energies = self.energies[kIndex][sorter]
-
-        probs = np.abs(states)**2
-        phases = np.angle(states)
+        nOrbs = state.shape[-1]
 
         # === preparation of the plot ===
         fig, ax1 = plt.subplots()
-        ax1.set_aspect('equal',adjustable='datalim')
-        ax1.set_title("Eigenstate {} with E={}".format(state, energies[state]))
+        ax1.set_aspect('equal', adjustable='datalim')
+        ax1.set_title("Eigenstate #{n} with E = {energy:f}".format(n=stateInd, energy=energy))
 
-        ax2=ax1.twinx()
-        ax3=ax1.twiny()
+        ax2 = ax1.twinx()
+        ax3 = ax1.twiny()
 
         # === plotting ===
-        ax1.plot(basis[:,0], basis[:,1], 'x', c='0.7', alpha=1, zorder=-5, ms=8,mew=1)
+        ax1.plot(basis[:, 0], basis[:, 1], 'x', c='0.7', alpha=1, zorder=-5, ms=8, mew=1)
 
         for orbital in range(nOrbs):
             # --- 2d plot ---
-            prob = probs[state, :, orbital]
-            phase = phases[state, :, orbital]
+            prob = probs[:, orbital]
             color = ['r', 'b', 'g', 'y'][orbital]
-            #plt.scatter(basis[:, 0], basis[:, 1], s=prob*2e4, \
-            #    c=phase,edgecolor=color, linewidths=3, alpha=0.5)
-            ax1.scatter(basis[:,0], basis[:,1], s=prob**2*2e4, \
-                c=color, alpha=0.5)
+
+            ax1.scatter(basis[:, 0], basis[:, 1], s=2e4 * prob ** 2, c=color, alpha=0.5)
 
             # --- projection ---
             sorter = np.argsort(prob)
             prob = prob[sorter]
             pos = basis[sorter]
 
-            splitter =  np.where(np.diff(prob) > self.__tol)[0] + 1
-            prob_split = np.split(prob,splitter)
-            pos_split = np.split(pos,splitter,axis=0)
+            splitter = np.where(np.diff(prob) > self.__tol)[0] + 1
+            prob_split = np.split(prob, splitter)
+            pos_split = np.split(pos, splitter, axis=0)
 
-            for prob, pos in zip(prob_split,pos_split):
-                ax2.plot(pos[:,0], prob, 'x-', c=color,alpha=0.5,ms=8,mew=1)
-                ax3.plot(prob, pos[:,1], 'x-', c=color,alpha=0.5,ms=8,mew=1)
+            for prob, pos in zip(prob_split, pos_split):
+                ax2.plot(pos[:, 0], prob, 'x-', c=color, alpha=0.5, ms=8, mew=1)
+                ax3.plot(prob, pos[:, 1], 'x-', c=color, alpha=0.5, ms=8, mew=1)
 
         ax1.set_xlabel("X-position")
         ax1.set_ylabel("Y-position")
@@ -341,15 +350,15 @@ class Bandstructure:
         ax1.grid()
 
         # === resizing ===
-        maxprob = max(ax3.get_xlim()[1],ax2.get_ylim()[1])
-        ax3.set_xlim(0,maxprob*15)
-        ax2.set_ylim(0,maxprob*15)
+        maxprob = max(ax3.get_xlim()[1], ax2.get_ylim()[1])
+        ax3.set_xlim(0, maxprob * 15)
+        ax2.set_ylim(0, maxprob * 15)
         ax3.set_xticks([])
         ax2.set_yticks([])
 
-        x1,x2 = ax1.get_xlim() #min(basis[:,0]), max(basis[:,0])
-        ax1.set_xlim(x1-(x2-x1)*(2/6),x2+(x2-x1)/6)
-        y1,y2 = ax1.get_ylim() #min(basis[:,1]), max(basis[:,1])
+        x1, x2 = ax1.get_xlim()
+        ax1.set_xlim(x1-(x2-x1)*(2/6), x2+(x2-x1)/6)
+        y1, y2 = ax1.get_ylim()
         ax1.set_ylim(y1-(y2-y1)*(2/6),y2+(y2-y1)/6)
 
         # === output ===
