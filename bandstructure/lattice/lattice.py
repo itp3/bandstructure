@@ -411,6 +411,16 @@ class Lattice():
 
         return self.__vecsBasis
 
+    def getNumLattice(self):
+        """Get length of array of lattice vectors"""
+
+        return len(self.__vecsLattice)
+
+    def getNumBasis(self):
+        """Get length of array of basis vectors"""
+
+        return len(self.__vecsBasis)
+
     def makeFiniteCircle(self, cutoff, center=[0,0]):
         """Generate a finite circular lattice.
 
@@ -431,7 +441,7 @@ class Lattice():
     def makeFiniteRectangle(self, cutoffX, cutoffY, center=[0,0]):
         """Generate a finite rectangular lattice.
 
-        makeFiniteCircle(2*width,2*height, center=[x,Y])"""
+        makeFiniteCircle(2*width,2*height, center=[x,y])"""
 
         positionsAll = self.getGeometry(np.sqrt(2)*max(cutoffX,cutoffY)+np.linalg.norm(center)).reshape(-1,2)
 
@@ -445,7 +455,7 @@ class Lattice():
         self.__vecsReciprocal = np.array([])
         self.__vecsBasis = positionsAll
 
-    def makeFiniteAlongdirection(self,idxVecLattice, repetitions):
+    def makeFiniteAlongdirection(self, idxVecLattice, repetitions):
         numSubs = self.numSublattices()
 
         # === creation of all positions ===
@@ -460,6 +470,16 @@ class Lattice():
         self.__vecsBasis = positionsAll
 
         self.__vecsReciprocal = self.getReciprocalVectors()
+
+    def addRandomVacancies(self,density):
+        """Randomly remove lattice sites"""
+
+        self.__vecsBasis = self.__vecsBasis[np.random.rand(self.numSublattices()) > density]
+
+    def addRandomShifts(self, standarddev):
+        """Randomly shift lattice sites"""
+
+        self.__vecsBasis += np.random.normal(scale=standarddev,size=self.__vecsBasis.shape)
 
     def numSublattices(self):
         """Returns the number of sublattices"""
