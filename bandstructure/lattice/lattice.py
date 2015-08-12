@@ -456,19 +456,46 @@ class Lattice():
         self.__vecsBasis = positionsAll
 
     def makeFiniteAlongdirection(self, idxVecLattice, repetitions):
-        numSubs = self.numSublattices()
+        """Make the basis finite in the direction of a lattice vector.
 
-        # === creation of all positions ===
-        positions = np.arange(repetitions)[:,None]*self.__vecsLattice[idxVecLattice][None,:]
-        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
+        makeFiniteAlongdirection(idxVecLattice, repetitions)"""
 
-        # save the "more finite" system
-        boolarr = np.ones(self.__vecsLattice.shape[0],dtype=bool)
-        boolarr[idxVecLattice] = False
+        numLatticevectors = self.__vecsLattice.shape[0]
 
+        r = np.ones(numLatticevectors)
+        r[idxVecLattice] = repetitions
+        f = np.zeros(numLatticevectors, dtype=np.bool)
+        f[idxVecLattice] = True
+
+        self.enlargeBasis(r,f)
+
+    def enlargeBasis(self, repetitions, makefinite=False):
+        """Enlarge the basis (and make it finite if desired) in the direction of the lattice vectors.
+
+        enlargeBasis(repetitions, makefinite)"""
+
+        numLatticevectors = self.__vecsLattice.shape[0]
+
+        if type(repetitions) is int: repetitions = np.ones(numLatticevectors)*repetitions
+        if type(makefinite) is bool: makefinite = np.ones(numLatticevectors,dtype=np.bool)*makefinite
+
+        # save new basis vectors
+        for idxVecLattice, rep in enumerate(repetitions):
+            numSubs = self.__vecsBasis.shape[0]
+
+            positions = np.arange(rep)[:,None]*self.__vecsLattice[idxVecLattice][None,:]
+            positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
+            self.__vecsBasis = positionsAll
+
+            # rescale lattice vectors
+            self.__vecsLattice[idxVecLattice] *= rep
+
+        # remove lattice vectors if desired
+        boolarr = np.ones(self.__vecsLattice.shape[0],dtype=np.bool)
+        boolarr[np.array(makefinite)] = False
         self.__vecsLattice = self.__vecsLattice[boolarr]
-        self.__vecsBasis = positionsAll
 
+        # generate new reciprocal vectors
         self.__vecsReciprocal = self.getReciprocalVectors()
 
     def addRandomVacancies(self,density):
