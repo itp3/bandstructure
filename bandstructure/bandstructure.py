@@ -57,7 +57,7 @@ class Bandstructure:
 
         return np.squeeze(ratios)
 
-    def getBerryFlux(self, band=None):
+    def getBerryFlux(self, band=None, added = False):
         """Returns the total Berry flux for all bands, unless a specific band index is given."""
 
         if self.kvectors is None or self.kvectors.dim != 2:
@@ -74,20 +74,27 @@ class Bandstructure:
 
         if band is None:
             bands = range(nb)
-        else:
+        elif type(band) is int:
             bands = [band]
+        else:
+            bands = band
 
         fluxes = []
         for n in bands:
+            if added and n < nb/2: others = np.arange(nb) >= nb/2
+            elif added and n >= nb/2: others = np.arange(nb) < nb/2
+            else: others = np.arange(nb) != n
+
             # nth eigenvector
             vecn = self.states[..., n]
             # other eigenvectors
-            vecm = self.states[..., np.arange(nb)[np.arange(nb) != n]]
+            vecm = self.states[..., np.arange(nb)[others]]
 
             # nth eigenenergy
             en = self.energies[..., n]
             # other eigenenergies
-            em = self.energies[..., np.arange(nb)[np.arange(nb) != n]]
+            em = self.energies[..., np.arange(nb)[others]]
+
             ediff = (em - en[:, :, None])**2
 
             # put everything together
@@ -104,7 +111,13 @@ class Bandstructure:
             # calculate Berry flux
             fluxes.append(np.sum(gamma))
 
-        return np.squeeze(fluxes)
+        fluxes = np.squeeze(fluxes)
+
+        if added:
+            fluxes[:nb/2] = np.sum(fluxes[:nb/2])
+            fluxes[nb/2:] = np.sum(fluxes[nb/2:])
+
+        return fluxes
 
     def getBerryPhase(self, band=None):
         """Returns the Berry phase along the underlying 1D path for all bands, unless a specific
