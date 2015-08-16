@@ -498,7 +498,7 @@ class Lattice():
         # generate new reciprocal vectors
         self.__vecsReciprocal = self.getReciprocalVectors()
 
-    def addRandomVacancies(self, density):
+    def addRandomVacanciesByDensity(self, density):
         """Randomly remove basis vectors (useful for finite systems or large unit cells).
 
         The parameter determines the density of vacancies.
@@ -508,6 +508,14 @@ class Lattice():
 
         np.random.shuffle(self.__vecsBasis)
         self.__vecsBasis = self.__vecsBasis[0:numLeft, :]
+
+    def addRandomVacanciesByProbability(self, probability):
+        """Randomly remove basis vectors (useful for finite systems or large unit cells).
+
+        The parameter determines the probability of vacancies.
+        """
+
+        self.__vecsBasis = self.__vecsBasis[np.random.rand(self.numSublattices()) > probability]
 
     def addRandomShifts(self, standarddev):
         """Randomly shift lattice sites"""
