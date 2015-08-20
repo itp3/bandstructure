@@ -57,8 +57,10 @@ class Bandstructure:
 
         return np.squeeze(ratios)
 
-    def getBerryFlux(self, band=None, added = False):
-        """Returns the total Berry flux for all bands, unless a specific band index is given."""
+    def getBerryFlux(self, band=None, added = False, nParts = 2):
+        """Returns the total Berry flux for all bands, unless a specific band index is given.
+
+        If added == True, add the flux of consecutive bands."""
 
         if self.kvectors is None or self.kvectors.dim != 2:
             raise Exception("Only supports 2D k-space arrays")
@@ -71,19 +73,20 @@ class Bandstructure:
         Dy[:, 1:-1] = (self.hamiltonians[:, 2:] - self.hamiltonians[:, :-2])/2
 
         nb = self.numBands()
+        if added: nBandsPerPart = nb/nParts
 
-        if band is None:
-            bands = range(nb)
-        elif type(band) is int:
-            bands = [band]
-        else:
-            bands = band
+        if band is None: bands = range(nb)
+        elif type(band) is int: bands = [band]
+        else: bands = band
 
         fluxes = []
         for n in bands:
-            if added and n < nb/2: others = np.arange(nb) >= nb/2
-            elif added and n >= nb/2: others = np.arange(nb) < nb/2
-            else: others = np.arange(nb) != n
+            if added:
+                idxPart = n//nBandsPerPart
+                others = np.ones(nb,dtype=np.bool)
+                others[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart] = False
+            else:
+                others = np.arange(nb) != n
 
             # nth eigenvector
             vecn = self.states[..., n]
@@ -111,11 +114,15 @@ class Bandstructure:
             # calculate Berry flux
             fluxes.append(np.sum(gamma))
 
-        fluxes = np.squeeze(fluxes)
+        if type(band) is int: fluxes = fluxes[0]
+        else: fluxes = np.array(fluxes)
 
         if added:
-            fluxes[:nb/2] = np.sum(fluxes[:nb/2])
-            fluxes[nb/2:] = np.sum(fluxes[nb/2:])
+            for idxPart in range(nParts):
+                if (idxPart+1)*nBandsPerPart > len(fluxes) : break
+
+                fluxes[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart] = \
+                    np.sum(fluxes[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart])
 
         return fluxes
 
