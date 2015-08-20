@@ -2,4 +2,4 @@ __pycache__/
 *.py[cod]
 doc/html
 tests/coverage-report
-extensions
+bandstructure/extensions
