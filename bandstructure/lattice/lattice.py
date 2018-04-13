@@ -8,11 +8,13 @@ from .kvectors import Kvectors
 class Lattice():
     """Class to generate the lattice."""
 
-    __vecsLattice = np.array([])
-    __vecsBasis = np.array([])
-    __vecsReciprocal = np.array([])
-    __posBrillouinZone = np.array([])
-    __posBrillouinPath = np.array([])
+    __vecsLattice = np.array([], dtype=np.float)
+    __vecsBasis = np.array([], dtype=np.float)
+    __idxBasis = np.array([])
+    __idxSub = np.array([])
+    __vecsReciprocal = np.array([], dtype=np.float)
+    __posBrillouinZone = np.array([], dtype=np.float)
+    __posBrillouinPath = np.array([], dtype=np.float)
     __specialPoints = { }
 
     __tol = 1e-16
@@ -119,7 +121,7 @@ class Lattice():
 
         # append vector to the array of lattice vectors
         if self.__vecsLattice.shape[0] == 0:
-            self.__vecsLattice = np.array([vector])
+            self.__vecsLattice = np.array([vector], dtype=np.float)
         else:
             self.__vecsLattice = np.append(self.__vecsLattice,[vector], axis=0)
 
@@ -140,9 +142,13 @@ class Lattice():
 
         # append vector to the array of lattice vectors
         if self.__vecsBasis.shape[0] == 0:
-            self.__vecsBasis = np.array([vector])
+            self.__vecsBasis = np.array([vector], dtype=np.float)
+            self.__idxBasis = np.array([0])
+            self.__idxSub = np.array([0])
         else:
             self.__vecsBasis = np.append(self.__vecsBasis,[vector], axis=0)
+            self.__idxBasis = np.append(self.__idxBasis,self.__idxBasis[-1]+1)
+            self.__idxSub = np.append(self.__idxSub,self.__idxSub[-1]+1)
 
     def _calcCircumcenter(self,vectorB, vectorC):
         """See http://en.wikipedia.org/wiki/Circumscribed_circle#Cartesian_coordinates."""
@@ -177,21 +183,21 @@ class Lattice():
 
         else:
             # === 2D Brillouin zone ===
-            # reciprocal positions
+            # reciprocal positions (contains the boundaries of the desired BZ)
             matTrafo = np.array([self.__vecsReciprocal[0], self.__vecsReciprocal[1]]).T
 
             reciprocalpositions     = np.empty((3*3,2))
             for n,[x,y] in enumerate(itertools.product([0,-1,1],[0,-1,1])):
                 reciprocalpositions[n] = np.dot(matTrafo, [x,y])
 
-            # calculate "radius" of the Brillouin zone
+            # calculate "radius" of the BZ (the resulting BZ will be too large; the areas which ware not relevant for the desired BZ will be masked)
             radius = np.max(np.sqrt(np.sum(self.__vecsReciprocal**2,axis=-1)))
 
-            # generate a matrix [IdxX, IdxY, Coord] that stores the positions inside the brillouinzone
+            # generate a matrix [IdxX, IdxY, Coord] that stores the positions inside the too large BZ
             positions=np.mgrid[-radius:radius:2j*resolution,
                 -radius:radius:2j*resolution,].transpose(1,2,0)
 
-            # calculate the distances of the matrix points from the reciprocal positions
+            # calculate the distances of the matrix points from the reciprocal positions of the desired BZ
             distances = np.tile(positions, (reciprocalpositions.shape[0],1,1,1))
             distances -= reciprocalpositions[:,None,None,:]
             distances = np.sqrt(np.sum(distances**2,axis=-1))
@@ -201,7 +207,7 @@ class Lattice():
 
             # slice the matrices
             si, se = np.where(~positionsMask)
-            slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2]
+            slice = np.s_[si.min()-1:si.max() + 2, se.min()-1:se.max() + 2] # TODO why not "si.min():si.max() + 1, se.min():se.max() + 1"?
 
             positions = Kvectors(positions[slice], mask = positionsMask[slice])
 
@@ -284,7 +290,7 @@ class Lattice():
             end = points[n]
 
             if stepsize == 0: steps = 1
-            else: steps = np.max([np.round(np.linalg.norm(end-start)/stepsize),1])
+            else: steps = max(int(np.round(np.linalg.norm(end-start)/stepsize)),1)
 
             newpos = np.transpose([np.linspace(start[0],end[0],steps,endpoint=False),
                 np.linspace(start[1],end[1],steps,endpoint=False)])
@@ -411,6 +417,16 @@ class Lattice():
 
         return self.__vecsBasis
 
+    def getIdxsBasis(self):
+        """Get array of basis indices"""
+
+        return self.__idxBasis
+
+    def getIdxsSub(self):
+        """Get array of sub lattice indices"""
+
+        return self.__idxSub
+
     def getNumLattice(self):
         """Get length of array of lattice vectors"""
 
@@ -426,34 +442,48 @@ class Lattice():
 
         makeFiniteCircle(radius, center=[x,Y])"""
 
-        positionsAll = self.getGeometry(cutoff+np.linalg.norm(center)).reshape(-1,2)
+        numSubs = self.numSublattices()
+        positions = self.getPositions(cutoff)
+        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
+
+        # save which sublattice corresponds to which position
+        self.__idxSub = (np.zeros((numSubs,len(positions)),dtype=np.int) + self.__idxSub[:,None]).reshape(-1)
 
         # masking
         positionsAllAbs = np.sqrt(np.sum((positionsAll-center)**2,axis=-1))
         positionsAllMask = (positionsAllAbs > cutoff)
         positionsAll = positionsAll[~positionsAllMask]
+        self.__idxSub = self.__idxSub[~positionsAllMask]
 
         # save the finite system as basisvectors
         self.__vecsLattice = np.array([])
         self.__vecsReciprocal = np.array([])
         self.__vecsBasis = positionsAll
+        self.__idxBasis = np.arange(len(self.__vecsBasis))
 
     def makeFiniteRectangle(self, cutoffX, cutoffY, center=[0,0]):
         """Generate a finite rectangular lattice.
 
-        makeFiniteCircle(2*width,2*height, center=[x,y])"""
+        makeFiniteRectangle(2*width, 2*height, center=[x,y])"""
 
-        positionsAll = self.getGeometry(np.sqrt(2)*max(cutoffX,cutoffY)+np.linalg.norm(center)).reshape(-1,2)
+        numSubs = self.numSublattices()
+        positions = self.getPositions(np.sqrt(cutoffX**2+cutoffY**2))
+        positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
+
+        # save which sublattice corresponds to which position
+        self.__idxSub = (np.zeros((numSubs,len(positions)),dtype=np.int) + self.__idxSub[:,None]).reshape(-1)
 
         # masking
         positionsAllMask = (np.abs(positionsAll[:,0]-center[0]) > cutoffX) | \
             (np.abs(positionsAll[:,1]-center[1]) > cutoffY)
         positionsAll = positionsAll[~positionsAllMask]
+        self.__idxSub = self.__idxSub[~positionsAllMask]
 
         # save the finite system as basisvectors
         self.__vecsLattice = np.array([])
         self.__vecsReciprocal = np.array([])
         self.__vecsBasis = positionsAll
+        self.__idxBasis = np.arange(len(self.__vecsBasis))
 
     def makeFiniteAlongdirection(self, idxVecLattice, repetitions):
         """Make the basis finite in the direction of a lattice vector.
@@ -468,6 +498,19 @@ class Lattice():
         f[idxVecLattice] = True
 
         self.enlargeBasis(r,f)
+
+    def clipFiniteRectangle(self, cutoffX = np.inf, cutoffY = np.inf, center=[0,0]):
+        """Clip basis in shape of a rectangle.
+
+        clipFiniteRectangle(self, 2*width, 2*height, center=[x,y])"""
+
+        # masking
+        basisMask = (np.abs(self.__vecsBasis[:,0]-center[0]) > cutoffX) | \
+            (np.abs(self.__vecsBasis[:,1]-center[1]) > cutoffY)
+        self.__vecsBasis = self.__vecsBasis[~basisMask]
+        self.__idxSub = self.__idxSub[~basisMask]
+
+        self.__idxBasis = np.arange(len(self.__vecsBasis))
 
     def enlargeBasis(self, repetitions, makefinite=False):
         """Enlarge the basis (and make it finite if desired) in the direction of the lattice vectors.
@@ -487,8 +530,13 @@ class Lattice():
             positionsAll = (np.tile(positions, (numSubs,1,1)) + self.__vecsBasis[:,None]).reshape(-1,2)
             self.__vecsBasis = positionsAll
 
+            # save which sublattice corresponds to which position
+            self.__idxSub = (np.zeros((numSubs,len(positions)),dtype=np.int) + self.__idxSub[:,None]).reshape(-1)
+
             # rescale lattice vectors
             self.__vecsLattice[idxVecLattice] *= rep
+
+        self.__idxBasis = np.arange(len(self.__vecsBasis))
 
         # remove lattice vectors if desired
         boolarr = np.ones(self.__vecsLattice.shape[0],dtype=np.bool)
@@ -498,29 +546,54 @@ class Lattice():
         # generate new reciprocal vectors
         self.__vecsReciprocal = self.getReciprocalVectors()
 
-    def addRandomVacanciesByDensity(self, density):
+    def addRandomVacanciesByDensity(self, density, fixed = None):
         """Randomly remove basis vectors (useful for finite systems or large unit cells).
 
-        The parameter determines the density of vacancies.
+        The parameter `density` determines the density of vacancies. The parameter `fixed` specify a lattice site which must not be removed.
         """
 
         numLeft = int(len(self.__vecsBasis) * (1 - density))
 
-        np.random.shuffle(self.__vecsBasis)
-        self.__vecsBasis = self.__vecsBasis[0:numLeft, :]
+        for n in range(10000):
+            idxarray = np.arange(len(self.__vecsBasis))
+            np.random.shuffle(idxarray)
+            if fixed is None or fixed in self.__idxBasis[idxarray][:numLeft]: break
+        else: raise Exception("Unable to remove lattice sites.")
 
-    def addRandomVacanciesByProbability(self, probability):
+        self.__vecsBasis = self.__vecsBasis[idxarray][:numLeft]
+        self.__idxBasis = self.__idxBasis[idxarray][:numLeft]
+        self.__idxSub = self.__idxSub[idxarray][:numLeft]
+
+    def addRandomVacanciesByProbability(self, probability, fixed = None):
         """Randomly remove basis vectors (useful for finite systems or large unit cells).
 
-        The parameter determines the probability of vacancies.
+        The parameter `density` determines the density of vacancies. The parameter `fixed` specify a lattice site which must not be removed.
         """
 
-        self.__vecsBasis = self.__vecsBasis[np.random.rand(self.numSublattices()) > probability]
+        for n in range(10000):
+            boolarray = np.random.rand(self.numSublattices()) > probability
+            if fixed is None or fixed in self.__idxBasis[boolarray]: break
+        else: raise Exception("Unable to remove lattice sites.")
+
+        self.__vecsBasis = self.__vecsBasis[boolarray]
+        self.__idxBasis = self.__idxBasis[boolarray]
+        self.__idxSub = self.__idxSub[boolarray]
 
     def addRandomShifts(self, standarddev):
         """Randomly shift lattice sites"""
 
         self.__vecsBasis += np.random.normal(scale=standarddev,size=self.__vecsBasis.shape)
+
+        # bring basis vectors back into unit cell, the random shifts might have brought the basis vectors outside the cell
+
+        for idx in range(len(self.__vecsBasis)):
+            for vecLattice in self.__vecsLattice:
+
+                # projection into the direction of the lattice vector
+                proj = np.vdot(self.__vecsBasis[idx], vecLattice)/np.linalg.norm(vecLattice)
+
+                # subtract lattice vectors
+                self.__vecsBasis[idx] -= np.floor(proj/np.linalg.norm(vecLattice)) * vecLattice
 
     def numSublattices(self):
         """Returns the number of sublattices"""
@@ -614,7 +687,7 @@ class Lattice():
 
         return Displacements(matDeltaR[:, :, ~unnecessaryLinks],
                              positions[~unnecessaryLinks],
-                             matDeltaRMask[:, :, ~unnecessaryLinks])
+                             matDeltaRMask[:, :, ~unnecessaryLinks], self.__idxSub)
 
     def __str__(self):
         return str({'vecsLattice': self.__vecsLattice, 'vecsBasis': self.__vecsBasis})

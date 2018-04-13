@@ -9,12 +9,14 @@ class Displacements:
     vectors = None
     central = None
     mask = None
+    sub = None
 
-    def __init__(self, vectors, central, mask):
+    def __init__(self, vectors, central, mask, sub):
         self.vectors = vectors
         self.vectors[mask] = np.nan
         self.central = central
         self.mask = mask
+        self.sub = sub
 
     def getNeighborsMask(self, layer=0):
         """Returns a boolean array with the (layer + 1)-th shell of neighbors set to true.

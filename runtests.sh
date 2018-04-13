@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 
 set -e
 
@@ -10,6 +10,7 @@ python3 -m pytest \
         --cov-report html \
         --cov bandstructure \
         --cov tests \
-        tests |& grep -v 'warning: No data was collected.'
+        tests
 
 rm .coverage*
+rm -R .pytest_cache

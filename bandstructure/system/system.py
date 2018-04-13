@@ -96,9 +96,9 @@ class System(metaclass=ABCMeta):
         expf = np.exp(1j * np.dot(self.displacements.central, kvec))
 
         # The Hamiltonian is given by the sum over all positions:
-        product = expf[None, None, :, None, None] * self.rates
-        product[self.displacements.mask] = 0
-        h = (product).sum(axis=2)
+        tmp = self.rates.copy()
+        tmp[self.displacements.mask] = 0
+        h = np.dot(expf, np.swapaxes(tmp,3,2))
 
         # Reshape Hamiltonian
         h = h.transpose((0, 2, 1, 3)).reshape((self.dimH, self.dimH))
@@ -106,6 +106,31 @@ class System(metaclass=ABCMeta):
         # Add onsite Hamiltonian:
         if self.diag is not None:
             h += self.diag
+
+        return h
+
+    def getHamiltonians(self, kvecs):
+        """Constructs the (Bloch) Hamiltonians on the specified lattice.
+
+        :param kvecs: momenta for the Bloch Hamiltonian H(k).
+        :returns:    A numpy array of shape ``(nKvecs, dimH, dimH)`` where dimH = nSublattices * nOrbitals
+                     is the dimension of the Hilbert space.
+        """
+
+        # Compute the exp(i r k) factor
+        expf = np.exp(1j * np.dot(kvecs, self.displacements.central.T))
+
+        # The Hamiltonian is given by the sum over all positions, conducted by np.dot:
+        tmp = self.rates.copy()
+        tmp[self.displacements.mask] = 0
+        h = np.dot(expf, np.swapaxes(tmp,3,2))
+
+        # Reshape Hamiltonian
+        h = h.transpose((0, 1, 3, 2, 4)).reshape((len(kvecs), self.dimH, self.dimH))
+
+        # Add onsite Hamiltonian:
+        if self.diag is not None:
+            h += self.diag[None,:,:]
 
         return h
 
@@ -135,8 +160,10 @@ class System(metaclass=ABCMeta):
             kvecsR = kvecs.points[nomask]
 
         if processes == 1:
-            # Use a straight map in the single-process case to allow for cleaner profiling
-            results = list(map(self._solveSingle, kvecsR))
+            hamiltonians = self.getHamiltonians(kvecsR)
+            eigensystems = np.linalg.eigh(hamiltonians)
+            results = list(zip(eigensystems[0], eigensystems[1], hamiltonians))
+
         else:
             pool = mp.Pool(processes)
             results = pool.map(workerSolveSingle, zip([self] * len(kvecsR), kvecsR))

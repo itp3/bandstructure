@@ -57,6 +57,43 @@ class Bandstructure:
 
         return np.squeeze(ratios)
 
+    def getGap(self, band=None, local=True):
+        """Returns the distance to the closest neighboring band. If local is set to false, the band
+        gap is calculated with the global definition: min_k(E_2) - max_k(E_1),
+        instead of min_k(E_2 - E_1)"""
+
+        nb = self.numBands()
+
+        if nb == 1: raise Exception("The band gap is not defined for a single band.")
+
+        if band is None:
+            bands = range(nb)
+        else:
+            bands = [band]
+
+        minGap = []
+        for b in bands:
+            gaps = []
+            enThis = self.energies[..., b]
+
+            if b >= 1:  # not the lowest band
+                enBottom = self.energies[..., b - 1]
+                if local:
+                    gaps.append(np.nanmin(enThis - enBottom))
+                else:
+                    gaps.append(np.nanmin(enThis) - np.nanmax(enBottom))
+
+            if b < nb - 1:  # not the highest band
+                enTop = self.energies[..., b + 1]
+                if local:
+                    gaps.append(np.nanmin(enTop - enThis))
+                else:
+                    gaps.append(np.nanmin(enTop) - np.nanmax(enThis))
+
+            minGap.append(np.nanmin(gaps))
+
+        return np.squeeze(minGap)
+
     def getBerryFlux(self, band=None, added = False, nParts = 2):
         """Returns the total Berry flux for all bands, unless a specific band index is given.
 
@@ -73,7 +110,7 @@ class Bandstructure:
         Dy[:, 1:-1] = (self.hamiltonians[:, 2:] - self.hamiltonians[:, :-2])/2
 
         nb = self.numBands()
-        if added: nBandsPerPart = nb/nParts
+        if added: nBandsPerPart = nb//nParts
 
         if band is None: bands = range(nb)
         elif type(band) is int: bands = [band]
@@ -81,6 +118,7 @@ class Bandstructure:
 
         fluxes = []
         for n in bands:
+
             if added:
                 idxPart = n//nBandsPerPart
                 others = np.ones(nb,dtype=np.bool)
@@ -101,11 +139,11 @@ class Bandstructure:
             ediff = (em - en[:, :, None])**2
 
             # put everything together
-            vecnDx = np.sum(vecn.conj()[:, :, :, None] * Dx, axis=-2)
-            vecnDxvexm = np.sum(vecnDx[:, :, :, None] * vecm, axis=-2)
+            vecnDx = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dx)
+            vecnDxvexm = np.einsum("ijk,ijkl->ijl",vecnDx, vecm)
 
-            vecnDy = np.sum(vecn.conj()[:, :, :, None] * Dy, axis=-2)
-            vecnDyvexm = np.sum(vecnDy[:, :, :, None] * vecm, axis=-2)
+            vecnDy = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dy)
+            vecnDyvexm = np.einsum("ijk,ijkl->ijl",vecnDy, vecm)
 
             # calculate Berry curvature
             gamma = -2 * np.imag(np.sum((vecnDxvexm/ediff) * vecnDyvexm.conj(), axis=-1))
@@ -399,6 +437,7 @@ class Bandstructure:
 
         # === plotting ===
         basis = self.params.get("lattice").getVecsBasis()
+        indices = self.params.get("lattice").getIdxsBasis()
         nSubs = basis.shape[0]
         nOrbs = self.states.shape[1]//nSubs
 
@@ -410,9 +449,10 @@ class Bandstructure:
             for o in range(nOrbs):
                 color = ['r', 'b', 'g', 'y'][o]
                 space = '          '*o
-                ax1.text(x, y, '\n\n{}{}'.format(space,n), verticalalignment='center', horizontalalignment='center',
+                ax1.text(x, y, '\n\n{}{}'.format(space,indices[n]*nOrbs+o), \
+                    verticalalignment='center', horizontalalignment='center', \
                     color=color, transform=ax1.transData, fontsize=11,fontweight='bold')
-                n += 1
+            n += 1
 
         # --- distances ---
         an = np.linspace(0,2*np.pi,100)
