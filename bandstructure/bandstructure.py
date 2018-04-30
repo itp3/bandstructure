@@ -94,75 +94,126 @@ class Bandstructure:
 
         return np.squeeze(minGap)
 
-    def getBerryFlux(self, band=None, added = False, nParts = 2):
-        """Returns the total Berry flux for all bands, unless a specific band index is given.
+    def getBerryFlux(self, band, alternative_algorithm=False):
+        """Returns the Berry flux for the specified band. If more than one band is specified, the total Berry flux is calculated.
 
-        If added == True, add the flux of consecutive bands."""
+        If alternative_algorithm == False, the method uses the efficient algorithm http://doi.org/10.1143/JPSJ.74.1674,
+        else the approach described in https://doi.org/10.1080/00107514.2014.948923 is applied."""
 
-        if self.kvectors is None or self.kvectors.dim != 2:
-            raise Exception("Only supports 2D k-space arrays")
+        if alternative_algorithm == False:
 
-        # Derivatives of the Hamiltonian (multiplied by dx, dy)
-        Dx = np.empty_like(self.hamiltonians)
-        Dx[1:-1, :] = (self.hamiltonians[2:, :] - self.hamiltonians[:-2, :])/2
+            ### http://doi.org/10.1143/JPSJ.74.1674 ###############################################
 
-        Dy = np.empty_like(self.hamiltonians)
-        Dy[:, 1:-1] = (self.hamiltonians[:, 2:] - self.hamiltonians[:, :-2])/2
+            from scipy.sparse.linalg import splu
+            from scipy.sparse import csc_matrix
 
-        nb = self.numBands()
-        if added: nBandsPerPart = nb//nParts
+            if self.kvectors is None or self.kvectors.dim != 2:
+                raise Exception("Only supports 2D k-space arrays")
 
-        if band is None: bands = range(nb)
-        elif type(band) is int: bands = [band]
-        else: bands = band
+            if not np.isclose((self.kvectors.points[1,0]-self.kvectors.points[0,0])*self.kvectors.shape[0], self.params['lattice'].vecsReciprocal[1], rtol=1e-6).all() \
+                or not np.isclose((self.kvectors.points[0,1]-self.kvectors.points[0,0])*self.kvectors.shape[0], self.params['lattice'].vecsReciprocal[0], rtol=1e-6).all():
+                raise Exception("Only supports rhomboidal k-space arrays")
 
-        fluxes = []
-        for n in bands:
+            # choosen eigenvectors
+            vecn = self.states[...,band]
 
-            if added:
-                idxPart = n//nBandsPerPart
-                others = np.ones(nb,dtype=np.bool)
-                others[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart] = False
+            # division of the BZ
+            nKspace1 = vecn.shape[0]
+            nKspace2 = vecn.shape[1]
+
+            # link variables along first axis
+            if len(vecn.shape)==3:
+                U_1 = np.einsum("ijk,ijk->ij",vecn.conj(), np.roll(vecn,1,axis=0))
             else:
-                others = np.arange(nb) != n
+                tmp = np.einsum("ijkn,ijkm->ijnm",vecn.conj(), np.roll(vecn,1,axis=0))
 
-            # nth eigenvector
-            vecn = self.states[..., n]
-            # other eigenvectors
-            vecm = self.states[..., np.arange(nb)[others]]
+                # calculate the determinant of tmp, using a faster approach than np.linalg.det(tmp)
+                U_1 = np.array([
+                    (-1)**np.sum((t.perm_r[None,:]>t.perm_r[:,None])[np.triu_indices(t.shape[0],1)]) * \
+                    (-1)**np.sum((t.perm_c[None,:]>t.perm_c[:,None])[np.triu_indices(t.shape[0],1)]) * \
+                    t.L.diagonal().prod() * \
+                    t.U.diagonal().prod() for t in map(splu, map(csc_matrix, np.vstack(tmp)))]).reshape(nKspace1, nKspace2)
 
-            # nth eigenenergy
-            en = self.energies[..., n]
-            # other eigenenergies
-            em = self.energies[..., np.arange(nb)[others]]
+            U_1 /= np.abs(U_1)
 
-            ediff = (em - en[:, :, None])**2
+            # link variables along second axis
+            if len(vecn.shape)==3:
+                U_2 = np.einsum("ijk,ijk->ij",vecn.conj(), np.roll(vecn,1,axis=1))
+            else:
+                tmp = np.einsum("ijkn,ijkm->ijnm",vecn.conj(), np.roll(vecn,1,axis=1))
 
-            # put everything together
-            vecnDx = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dx)
-            vecnDxvexm = np.einsum("ijk,ijkl->ijl",vecnDx, vecm)
+                # calculate the determinant of tmp, using a faster approach than np.linalg.det(tmp)
+                U_2 = np.array([
+                    (-1)**np.sum((t.perm_r[None,:]>t.perm_r[:,None])[np.triu_indices(t.shape[0],1)]) * \
+                    (-1)**np.sum((t.perm_c[None,:]>t.perm_c[:,None])[np.triu_indices(t.shape[0],1)]) * \
+                    t.L.diagonal().prod() * \
+                    t.U.diagonal().prod() for t in map(splu, map(csc_matrix, np.vstack(tmp)))]).reshape(nKspace1, nKspace2)
 
-            vecnDy = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dy)
-            vecnDyvexm = np.einsum("ijk,ijkl->ijl",vecnDy, vecm)
+            U_2 /= np.abs(U_2)
 
-            # calculate Berry curvature
-            gamma = -2 * np.imag(np.sum((vecnDxvexm/ediff) * vecnDyvexm.conj(), axis=-1))
-            gamma[self.kvectors.mask] = 0
+            # lattice field strength
+            F_12 = np.log(U_1*np.roll(U_2,1,axis=0)/np.roll(U_1,1,axis=1)/U_2)
 
-            # calculate Berry flux
-            fluxes.append(np.sum(gamma))
+            # Berry curvature
+            gamma = -np.imag(F_12) # TODO sign?
 
-        if type(band) is int: fluxes = fluxes[0]
-        else: fluxes = np.array(fluxes)
+            # total flux (np.round removes numerical errors)
+            flux = np.round(np.sum(gamma)/(2*np.pi))*2*np.pi
 
-        if added:
-            for idxPart in range(nParts):
-                if (idxPart+1)*nBandsPerPart > len(fluxes) : break
+        else:
 
-                fluxes[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart] = \
-                    np.sum(fluxes[idxPart*nBandsPerPart:(idxPart+1)*nBandsPerPart])
+            ### https://doi.org/10.1080/00107514.2014.948923 ######################################
 
-        return fluxes
+            if np.isclose((self.kvectors.points[1,0]-self.kvectors.points[0,0])*self.kvectors.shape[0], self.params['lattice'].vecsReciprocal[1], rtol=1e-6).all() \
+                and np.isclose((self.kvectors.points[0,1]-self.kvectors.points[0,0])*self.kvectors.shape[0], self.params['lattice'].vecsReciprocal[0], rtol=1e-6).all():
+                # derivatives of the Hamiltonian (multiplied by dx, dy)
+                Dx = (np.roll(self.hamiltonians,1,axis=0) - np.roll(self.hamiltonians,-1,axis=0))/2
+                Dy = (np.roll(self.hamiltonians,1,axis=1) - np.roll(self.hamiltonians,-1,axis=1))/2
+            else:
+                # derivatives of the Hamiltonian (multiplied by dx, dy)
+                Dx = np.empty_like(self.hamiltonians)
+                Dx[1:-1, :] = (self.hamiltonians[2:, :] - self.hamiltonians[:-2, :])/2
+                Dy = np.empty_like(self.hamiltonians)
+                Dy[:, 1:-1] = (self.hamiltonians[:, 2:] - self.hamiltonians[:, :-2])/2
+
+            # store the bands for which we do not calculate the Berry flux
+            nb = self.numBands()
+            others = np.ones(nb,dtype=np.bool)
+            others[band] = False
+
+            # calculate the Berry flux
+            fluxes = []
+            for n in np.ravel([band]):
+                # nth eigenvector
+                vecn = self.states[..., n]
+                # other eigenvectors
+                vecm = self.states[..., np.arange(nb)[others]]
+
+                # nth eigenenergy
+                en = self.energies[..., n]
+                # other eigenenergies
+                em = self.energies[..., np.arange(nb)[others]]
+
+                ediff = (em - en[:, :, None])**2
+
+                # put everything together
+                vecnDx = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dx)
+                vecnDxvexm = np.einsum("ijk,ijkl->ijl",vecnDx, vecm)
+
+                vecnDy = np.einsum("ijk,ijkl->ijl",vecn.conj(), Dy)
+                vecnDyvexm = np.einsum("ijk,ijkl->ijl",vecnDy, vecm)
+
+                # calculate Berry curvature
+                gamma = -2 * np.imag(np.sum((vecnDxvexm/ediff) * vecnDyvexm.conj(), axis=-1))
+                gamma[self.kvectors.mask] = 0
+
+                # calculate Berry flux
+                fluxes.append(np.sum(gamma))
+
+            # total flux
+            flux = np.sum(fluxes)
+
+        return flux
 
     def getBerryPhase(self, band=None):
         """Returns the Berry phase along the underlying 1D path for all bands, unless a specific

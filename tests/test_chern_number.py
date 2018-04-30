@@ -19,9 +19,12 @@ def test_chern_number_dipolar_honeyomb():
 
     s = DipolarSystem(params)
 
-    bzone = lattice.getKvectorsZone(50)
+    bbox = lattice.getKvectorsRhomboid(50)
 
-    bandstructure = s.solve(bzone)
-    chernNumbers = bandstructure.getBerryFlux() / (2 * np.pi)
+    bandstructure = s.solve(bbox)
 
+    chernNumbers = [bandstructure.getBerryFlux(n) / (2 * np.pi) for n in range(4)]
+    np.testing.assert_almost_equal(chernNumbers, [1, 0, -3, 2], decimal=1)
+
+    chernNumbers = [bandstructure.getBerryFlux(n, alternative_algorithm=True) / (2 * np.pi) for n in range(4)]
     np.testing.assert_almost_equal(chernNumbers, [1, 0, -3, 2], decimal=1)

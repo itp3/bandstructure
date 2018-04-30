@@ -26,6 +26,10 @@ class Lattice():
         pass
 
     @property
+    def vecsReciprocal(self):
+        return self.__vecsReciprocal
+
+    @property
     def vecsBasis(self):
         pass #TODO
 
@@ -262,6 +266,26 @@ class Lattice():
             positionsMask[1:-1,1:-1] = False
 
             positions = Kvectors(positions, mask = positionsMask)
+
+        return positions
+
+    def getKvectorsRhomboid(self, resolution):
+
+        if self.__vecsReciprocal.shape[0] == 0:
+            # 0d BZ
+            positions = Kvectors([[[0,0]]])
+
+        elif self.__vecsReciprocal.shape[0] == 1:
+            # 1d BZ
+            positions = self.__vecsReciprocal[0][None,:]*np.linspace(0, 1, resolution,endpoint=False)[:,None]
+            positions = Kvectors(positions)
+
+        else:
+            # 2d BZ
+            positions1 = self.__vecsReciprocal[0][None,:]*np.linspace(0, 1, resolution,endpoint=False)[:,None]
+            positions2 = self.__vecsReciprocal[1][None,:]*np.linspace(0, 1, resolution,endpoint=False)[:,None]
+            positions = positions2[:,None,:]+positions1[None,:,:]
+            positions = Kvectors(positions)
 
         return positions
 
